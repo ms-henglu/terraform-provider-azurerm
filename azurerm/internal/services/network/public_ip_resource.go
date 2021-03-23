@@ -120,7 +120,7 @@ func resourcePublicIp() *schema.Resource {
 				ValidateFunc: azure.ValidateResourceID,
 			},
 
-			"zones": azure.SchemaSingleZone(),
+			"zones": azure.SchemaMultipleZones(),
 
 			"tags": tags.Schema(),
 		},

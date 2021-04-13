@@ -58,3 +58,11 @@ package network
 // Virtual Network Gateway
 //go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=VirtualNetworkGateway -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/virtualNetworkGateways/gw1
 //go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=VirtualNetworkGatewayIpConfiguration -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/virtualNetworkGateways/gw1/ipConfigurations/cfg1
+
+// Network Manager
+//go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=NetworkManager -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/networkManagers/networkManager1
+//go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=NetworkGroup -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/networkManagers/networkManager1/networkGroups/networkGroup1
+//go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=NetworkConnectivityConfiguration -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/networkManagers/networkManager1/connectivityConfigurations/connectivityConfiguration1
+//go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=NetworkSecurityConfiguration -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/networkManagers/networkManager1/securityConfigurations/securityConfiguration1
+//go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=NetworkAdminRule -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/networkManagers/networkManager1/securityConfigurations/securityConfiguration1/adminRules/adminRule1
+//go:generate go run ../../tools/generator-resource-id/main.go -path=./ -name=NetworkUserRule -id=/subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/resGroup1/providers/Microsoft.Network/networkManagers/networkManager1/securityConfigurations/securityConfiguration1/userRules/userRule1

@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2020-05-01/network"
+	previewNetwork "github.com/Azure/azure-sdk-for-go/services/preview/network/mgmt/2021-02-01-preview/network"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/common"
 )
 
@@ -10,12 +11,14 @@ type Client struct {
 	ApplicationSecurityGroupsClient        *network.ApplicationSecurityGroupsClient
 	BastionHostsClient                     *network.BastionHostsClient
 	ConnectionMonitorsClient               *network.ConnectionMonitorsClient
+	ConnectivityConfigurationClient        *previewNetwork.ConnectivityConfigurationsClient
 	DDOSProtectionPlansClient              *network.DdosProtectionPlansClient
 	ExpressRouteAuthsClient                *network.ExpressRouteCircuitAuthorizationsClient
 	ExpressRouteCircuitsClient             *network.ExpressRouteCircuitsClient
 	ExpressRouteGatewaysClient             *network.ExpressRouteGatewaysClient
 	ExpressRoutePeeringsClient             *network.ExpressRouteCircuitPeeringsClient
 	ExpressRoutePortsClient                *network.ExpressRoutePortsClient
+	GroupClient                            *previewNetwork.GroupsClient
 	HubRouteTableClient                    *network.HubRouteTablesClient
 	HubVirtualNetworkConnectionClient      *network.HubVirtualNetworkConnectionsClient
 	InterfacesClient                       *network.InterfacesClient
@@ -37,6 +40,7 @@ type Client struct {
 	ServiceEndpointPolicyDefinitionsClient *network.ServiceEndpointPolicyDefinitionsClient
 	ServiceTagsClient                      *network.ServiceTagsClient
 	SubnetsClient                          *network.SubnetsClient
+	ManagerClient                          *previewNetwork.ManagersClient
 	NatGatewayClient                       *network.NatGatewaysClient
 	VirtualHubBgpConnectionClient          *network.VirtualHubBgpConnectionClient
 	VirtualHubIPClient                     *network.VirtualHubIPConfigurationClient
@@ -71,6 +75,9 @@ func NewClient(o *common.ClientOptions) *Client {
 	ConnectionMonitorsClient := network.NewConnectionMonitorsClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&ConnectionMonitorsClient.Client, o.ResourceManagerAuthorizer)
 
+	ConnectivityConfigurationClient := previewNetwork.NewConnectivityConfigurationsClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
+	o.ConfigureClient(&ConnectivityConfigurationClient.Client, o.ResourceManagerAuthorizer)
+
 	DDOSProtectionPlansClient := network.NewDdosProtectionPlansClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&DDOSProtectionPlansClient.Client, o.ResourceManagerAuthorizer)
 
@@ -88,6 +95,9 @@ func NewClient(o *common.ClientOptions) *Client {
 
 	ExpressRoutePortsClient := network.NewExpressRoutePortsClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&ExpressRoutePortsClient.Client, o.ResourceManagerAuthorizer)
+
+	GroupClient := previewNetwork.NewGroupsClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
+	o.ConfigureClient(&GroupClient.Client, o.ResourceManagerAuthorizer)
 
 	HubRouteTableClient := network.NewHubRouteTablesClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&HubRouteTableClient.Client, o.ResourceManagerAuthorizer)
@@ -176,6 +186,9 @@ func NewClient(o *common.ClientOptions) *Client {
 	VnetGatewayClient := network.NewVirtualNetworkGatewaysClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&VnetGatewayClient.Client, o.ResourceManagerAuthorizer)
 
+	ManagerClient := previewNetwork.NewManagersClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
+	o.ConfigureClient(&ManagerClient.Client, o.ResourceManagerAuthorizer)
+
 	NatGatewayClient := network.NewNatGatewaysClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&NatGatewayClient.Client, o.ResourceManagerAuthorizer)
 
@@ -214,12 +227,14 @@ func NewClient(o *common.ClientOptions) *Client {
 		ApplicationSecurityGroupsClient:        &ApplicationSecurityGroupsClient,
 		BastionHostsClient:                     &BastionHostsClient,
 		ConnectionMonitorsClient:               &ConnectionMonitorsClient,
+		ConnectivityConfigurationClient:        &ConnectivityConfigurationClient,
 		DDOSProtectionPlansClient:              &DDOSProtectionPlansClient,
 		ExpressRouteAuthsClient:                &ExpressRouteAuthsClient,
 		ExpressRouteCircuitsClient:             &ExpressRouteCircuitsClient,
 		ExpressRouteGatewaysClient:             &ExpressRouteGatewaysClient,
 		ExpressRoutePeeringsClient:             &ExpressRoutePeeringsClient,
 		ExpressRoutePortsClient:                &ExpressRoutePortsClient,
+		GroupClient:                            &GroupClient,
 		HubRouteTableClient:                    &HubRouteTableClient,
 		HubVirtualNetworkConnectionClient:      &HubVirtualNetworkConnectionClient,
 		InterfacesClient:                       &InterfacesClient,
@@ -241,6 +256,7 @@ func NewClient(o *common.ClientOptions) *Client {
 		ServiceEndpointPolicyDefinitionsClient: &ServiceEndpointPolicyDefinitionsClient,
 		ServiceTagsClient:                      &ServiceTagsClient,
 		SubnetsClient:                          &SubnetsClient,
+		ManagerClient:                          &ManagerClient,
 		NatGatewayClient:                       &NatGatewayClient,
 		VirtualHubBgpConnectionClient:          &VirtualHubBgpConnectionClient,
 		VirtualHubIPClient:                     &VirtualHubIPClient,

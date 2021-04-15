@@ -8,7 +8,7 @@ cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
 # cloud.google.com/go/storage v1.10.0
 cloud.google.com/go/storage
-# github.com/Azure/azure-sdk-for-go v52.6.0+incompatible
+# github.com/Azure/azure-sdk-for-go v52.6.0+incompatible => C:/users/henglu/go/src/github.com/Azure/azure-sdk-for-go
 ## explicit
 github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources
 github.com/Azure/azure-sdk-for-go/services/advisor/mgmt/2020-01-01/advisor
@@ -81,6 +81,7 @@ github.com/Azure/azure-sdk-for-go/services/preview/hardwaresecuritymodules/mgmt/
 github.com/Azure/azure-sdk-for-go/services/preview/maintenance/mgmt/2018-06-01-preview/maintenance
 github.com/Azure/azure-sdk-for-go/services/preview/mixedreality/mgmt/2019-02-28/mixedreality
 github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights
+github.com/Azure/azure-sdk-for-go/services/preview/network/mgmt/2021-02-01-preview/network
 github.com/Azure/azure-sdk-for-go/services/preview/operationsmanagement/mgmt/2015-11-01-preview/operationsmanagement
 github.com/Azure/azure-sdk-for-go/services/preview/policyinsights/mgmt/2019-10-01-preview/policyinsights
 github.com/Azure/azure-sdk-for-go/services/preview/portal/mgmt/2019-01-01-preview/portal
@@ -124,7 +125,7 @@ github.com/Azure/azure-sdk-for-go/services/timeseriesinsights/mgmt/2020-05-15/ti
 github.com/Azure/azure-sdk-for-go/services/trafficmanager/mgmt/2018-04-01/trafficmanager
 github.com/Azure/azure-sdk-for-go/services/web/mgmt/2020-06-01/web
 github.com/Azure/azure-sdk-for-go/version
-# github.com/Azure/go-autorest v14.2.0+incompatible
+# github.com/Azure/go-autorest v14.2.1-0.20210210161804-c7f947c0610d+incompatible
 github.com/Azure/go-autorest
 # github.com/Azure/go-autorest/autorest v0.11.18
 ## explicit
@@ -582,7 +583,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/mod v0.3.0
+# golang.org/x/mod v0.4.1
 golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
@@ -603,8 +604,9 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+# golang.org/x/sys v0.0.0-20210223212115-eede4237b368
 golang.org/x/sys/cpu
+golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -613,7 +615,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.0.0-20201028111035-eafbe7b904eb
+# golang.org/x/tools v0.1.1-0.20210224013232-0150491f5f0a
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
@@ -749,6 +751,7 @@ google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/pluginpb
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.4.0
 ## explicit
 gopkg.in/yaml.v2
+# github.com/Azure/azure-sdk-for-go => C:/users/henglu/go/src/github.com/Azure/azure-sdk-for-go

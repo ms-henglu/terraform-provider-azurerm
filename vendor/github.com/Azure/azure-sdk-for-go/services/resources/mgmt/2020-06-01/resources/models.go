@@ -2862,6 +2862,13 @@ type ProviderResourceType struct {
 	Capabilities *string `json:"capabilities,omitempty"`
 	// Properties - The properties.
 	Properties map[string]*string `json:"properties"`
+
+	ZoneMappings *[]ZoneMapping `json:"zoneMappings,omitempty"`
+}
+
+type ZoneMapping struct {
+	Location string `json:"location,omitempty"`
+	Zones *[]string `json:"zones,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ProviderResourceType.
@@ -2884,6 +2891,9 @@ func (prt ProviderResourceType) MarshalJSON() ([]byte, error) {
 	}
 	if prt.Properties != nil {
 		objectMap["properties"] = prt.Properties
+	}
+	if prt.ZoneMappings != nil {
+		objectMap["zoneMappings"] = prt.ZoneMappings
 	}
 	return json.Marshal(objectMap)
 }

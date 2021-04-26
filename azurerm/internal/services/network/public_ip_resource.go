@@ -1,12 +1,14 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2020-11-01/network"
+	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/azure"
@@ -177,7 +179,23 @@ func resourcePublicIpCreateUpdate(d *schema.ResourceData, meta interface{}) erro
 			return tf.ImportAsExistsError("azurerm_public_ip", id.ID())
 		}
 	}
-
+	// TODO: remove in 3.0
+	// to address this breaking change : https://azure.microsoft.com/en-us/updates/zone-behavior-change/, by setting a location's available zone list as default value to keep the behavior unchanged,
+	// to create a non-zonal resource, user can set zones to ["no_zone"]
+	if strings.EqualFold(sku, "standard") {
+		if zones == nil || len(*zones) == 0 {
+			allZones, err := getZones(ctx, meta.(*clients.Client).Resource.ResourceProvidersClient, "Microsoft.Network", "publicIPAddresses", location)
+			if err != nil {
+				log.Printf("[WARN] failed to get available zones for resourceType: publicIPAddresses, location: %s:%+v", location, err)
+			} else {
+				zones = allZones
+			}
+		} else {
+			if (*zones)[0] == "no_zone" {
+				zones = nil
+			}
+		}
+	}
 	publicIp := network.PublicIPAddress{
 		Name:     utils.String(id.Name),
 		Location: &location,
@@ -268,7 +286,16 @@ func resourcePublicIpRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", id.Name)
 	d.Set("resource_group_name", id.ResourceGroup)
-	d.Set("zones", resp.Zones)
+	// TODO: remove in 3.0
+	zones := make([]string, 0)
+	if resp.Sku != nil && strings.EqualFold(string(resp.Sku.Name), "standard") {
+		if resp.Zones == nil || len(*resp.Zones) == 0 {
+			zones = append(zones, "no_zone")
+		} else if len(*resp.Zones) == 1 {
+			zones = append(zones, (*resp.Zones)[0])
+		}
+	}
+	d.Set("zones", &zones)
 	if location := resp.Location; location != nil {
 		d.Set("location", azure.NormalizeLocation(*location))
 	}
@@ -334,4 +361,25 @@ func flattenPublicIpPropsIpTags(ipTags []network.IPTag) map[string]interface{} {
 		}
 	}
 	return mapIpTags
+}
+
+func getZones(ctx context.Context, client *resources.ProvidersClient, providerNamespace, resourceType, location string) (*[]string, error) {
+	provider, err := client.Get(ctx, providerNamespace, "")
+	if err != nil {
+		return nil, err
+	}
+	normalizedLocation := azure.NormalizeLocation(location)
+	for _, resource := range *provider.ResourceTypes {
+		if *resource.ResourceType == resourceType {
+			if resource.ZoneMappings != nil {
+				for _, zone := range *resource.ZoneMappings {
+					if azure.NormalizeLocation(zone.Location) == normalizedLocation {
+						return zone.Zones, nil
+					}
+				}
+			}
+			break
+		}
+	}
+	return nil, nil
 }

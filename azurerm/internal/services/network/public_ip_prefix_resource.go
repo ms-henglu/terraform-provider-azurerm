@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2020-11-01/network"
@@ -89,6 +90,21 @@ func resourcePublicIpPrefixCreateUpdate(d *schema.ResourceData, meta interface{}
 	t := d.Get("tags").(map[string]interface{})
 	zones := azure.ExpandZones(d.Get("zones").([]interface{}))
 
+	// TODO: remove in 3.0
+	// to address this breaking change : https://azure.microsoft.com/en-us/updates/zone-behavior-change/, by setting a location's available zone list as default value to keep the behavior unchanged,
+	// to create a non-zonal resource, user can set zones to ["no_zone"]
+	if zones == nil || len(*zones) == 0 {
+		allZones, err := getZones(ctx, meta.(*clients.Client).Resource.ResourceProvidersClient, "Microsoft.Network", "publicIPPrefixes", location)
+		if err != nil {
+			log.Printf("[WARN] failed to get available zones for resourceType: publicIPAddresses, location: %s:%+v", location, err)
+		} else {
+			zones = allZones
+		}
+	} else {
+		if (*zones)[0] == "no_zone" {
+			zones = nil
+		}
+	}
 	publicIpPrefix := network.PublicIPPrefix{
 		Name:     &name,
 		Location: &location,
@@ -148,7 +164,16 @@ func resourcePublicIpPrefixRead(d *schema.ResourceData, meta interface{}) error 
 
 	d.Set("name", resp.Name)
 	d.Set("resource_group_name", resGroup)
-	d.Set("zones", resp.Zones)
+	// TODO: remove in 3.0
+	zones := make([]string, 0)
+	if resp.Sku != nil && strings.EqualFold(string(resp.Sku.Name), "standard") {
+		if resp.Zones == nil || len(*resp.Zones) == 0 {
+			zones = append(zones, "no_zone")
+		} else if len(*resp.Zones) == 1 {
+			zones = append(zones, (*resp.Zones)[0])
+		}
+	}
+	d.Set("zones", &zones)
 	if location := resp.Location; location != nil {
 		d.Set("location", azure.NormalizeLocation(*location))
 	}

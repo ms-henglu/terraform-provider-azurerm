@@ -28,16 +28,19 @@ func (r Registration) SupportedDataSources() map[string]*schema.Resource {
 // SupportedResources returns the supported Resources supported by this Service
 func (r Registration) SupportedResources() map[string]*schema.Resource {
 	return map[string]*schema.Resource{
-		"azurerm_cosmosdb_account":              resourceCosmosDbAccount(),
-		"azurerm_cosmosdb_cassandra_keyspace":   resourceCosmosDbCassandraKeyspace(),
-		"azurerm_cosmosdb_cassandra_table":      resourceCosmosDbCassandraTable(),
-		"azurerm_cosmosdb_gremlin_database":     resourceCosmosGremlinDatabase(),
-		"azurerm_cosmosdb_gremlin_graph":        resourceCosmosDbGremlinGraph(),
-		"azurerm_cosmosdb_mongo_collection":     resourceCosmosDbMongoCollection(),
-		"azurerm_cosmosdb_mongo_database":       resourceCosmosDbMongoDatabase(),
-		"azurerm_cosmosdb_sql_container":        resourceCosmosDbSQLContainer(),
-		"azurerm_cosmosdb_sql_database":         resourceCosmosDbSQLDatabase(),
-		"azurerm_cosmosdb_sql_stored_procedure": resourceCosmosDbSQLStoredProcedure(),
-		"azurerm_cosmosdb_table":                resourceCosmosDbTable(),
+		"azurerm_cosmosdb_account":                   resourceCosmosDbAccount(),
+		"azurerm_cosmosdb_cassandra_keyspace":        resourceCosmosDbCassandraKeyspace(),
+		"azurerm_cosmosdb_cassandra_table":           resourceCosmosDbCassandraTable(),
+		"azurerm_cosmosdb_gremlin_database":          resourceCosmosGremlinDatabase(),
+		"azurerm_cosmosdb_gremlin_graph":             resourceCosmosDbGremlinGraph(),
+		"azurerm_cosmosdb_mongo_collection":          resourceCosmosDbMongoCollection(),
+		"azurerm_cosmosdb_mongo_database":            resourceCosmosDbMongoDatabase(),
+		"azurerm_cosmosdb_notebook_workspace":        resourceCosmosDbNotebookWorkspace(),
+		"azurerm_cosmosdb_sql_container":             resourceCosmosDbSQLContainer(),
+		"azurerm_cosmosdb_sql_database":              resourceCosmosDbSQLDatabase(),
+		"azurerm_cosmosdb_sql_user_defined_function": resourceCosmosDbSQLUserDefinedFunction(),
+		"azurerm_cosmosdb_sql_stored_procedure":      resourceCosmosDbSQLStoredProcedure(),
+		"azurerm_cosmosdb_sql_trigger":               resourceCosmosDbSQLTrigger(),
+		"azurerm_cosmosdb_table":                     resourceCosmosDbTable(),
 	}
 }

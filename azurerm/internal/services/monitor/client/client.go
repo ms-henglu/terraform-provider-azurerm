@@ -5,6 +5,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/monitor/mgmt/2020-10-01/insights"
 	"github.com/Azure/azure-sdk-for-go/services/preview/alertsmanagement/mgmt/2019-06-01-preview/alertsmanagement"
 	classic "github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
+	preview "github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2021-04-01-preview/insights"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/common"
 )
 
@@ -23,6 +24,7 @@ type Client struct {
 	ActionGroupsClient               *classic.ActionGroupsClient
 	ActivityLogAlertsClient          *insights.ActivityLogAlertsClient
 	AlertRulesClient                 *classic.AlertRulesClient
+	DataCollectionRulesClient        *preview.DataCollectionRulesClient
 	DiagnosticSettingsClient         *classic.DiagnosticSettingsClient
 	DiagnosticSettingsCategoryClient *classic.DiagnosticSettingsCategoryClient
 	LogProfilesClient                *classic.LogProfilesClient
@@ -55,6 +57,9 @@ func NewClient(o *common.ClientOptions) *Client {
 	DiagnosticSettingsClient := classic.NewDiagnosticSettingsClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&DiagnosticSettingsClient.Client, o.ResourceManagerAuthorizer)
 
+	DataCollectionRulesClient := preview.NewDataCollectionRulesClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
+	o.ConfigureClient(&DataCollectionRulesClient.Client, o.ResourceManagerAuthorizer)
+
 	DiagnosticSettingsCategoryClient := classic.NewDiagnosticSettingsCategoryClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&DiagnosticSettingsCategoryClient.Client, o.ResourceManagerAuthorizer)
 
@@ -75,6 +80,7 @@ func NewClient(o *common.ClientOptions) *Client {
 		ActionGroupsClient:               &ActionGroupsClient,
 		ActivityLogAlertsClient:          &ActivityLogAlertsClient,
 		AlertRulesClient:                 &AlertRulesClient,
+		DataCollectionRulesClient:        &DataCollectionRulesClient,
 		DiagnosticSettingsClient:         &DiagnosticSettingsClient,
 		DiagnosticSettingsCategoryClient: &DiagnosticSettingsCategoryClient,
 		LogProfilesClient:                &LogProfilesClient,

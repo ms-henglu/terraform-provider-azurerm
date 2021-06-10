@@ -15,6 +15,8 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/locks"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/services/cognitive/parse"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/services/cognitive/validate"
+	msiParse "github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/services/msi/parse"
+	msiValidate "github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/services/msi/validate"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/services/network"
 	networkParse "github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/services/network/parse"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/tags"
@@ -102,6 +104,43 @@ func resourceCognitiveAccount() *pluginsdk.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					"F0", "F1", "S0", "S", "S1", "S2", "S3", "S4", "S5", "S6", "P0", "P1", "P2",
 				}, false),
+			},
+
+			"identity": {
+				Type:     pluginsdk.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"type": {
+							Type:     pluginsdk.TypeString,
+							Optional: true,
+							Default:  string(cognitiveservices.None),
+							ValidateFunc: validation.StringInSlice([]string{
+								string(cognitiveservices.None),
+								string(cognitiveservices.SystemAssigned),
+								string(cognitiveservices.UserAssigned),
+							}, false),
+						},
+						"principal_id": {
+							Type:     pluginsdk.TypeString,
+							Computed: true,
+						},
+						"tenant_id": {
+							Type:     pluginsdk.TypeString,
+							Computed: true,
+						},
+						"identity_ids": {
+							Type:     pluginsdk.TypeSet,
+							Optional: true,
+							MinItems: 1,
+							Elem: &pluginsdk.Schema{
+								Type:         pluginsdk.TypeString,
+								ValidateFunc: msiValidate.UserAssignedIdentityID,
+							},
+						},
+					},
+				},
 			},
 
 			"qna_runtime_endpoint": {
@@ -219,6 +258,12 @@ func resourceCognitiveAccountCreate(d *pluginsdk.ResourceData, meta interface{})
 	locks.MultipleByName(&virtualNetworkNames, network.VirtualNetworkResourceName)
 	defer locks.UnlockMultipleByName(&virtualNetworkNames, network.VirtualNetworkResourceName)
 
+	identityRaw := d.Get("identity").([]interface{})
+	identity, err := expandCognitiveAccountIdentity(identityRaw)
+	if err != nil {
+		return fmt.Errorf("error expanding `identity`: %+v", err)
+	}
+
 	props := cognitiveservices.Account{
 		Kind:     utils.String(kind),
 		Location: utils.String(azure.NormalizeLocation(d.Get("location").(string))),
@@ -228,7 +273,8 @@ func resourceCognitiveAccountCreate(d *pluginsdk.ResourceData, meta interface{})
 			NetworkAcls:         networkAcls,
 			CustomSubDomainName: utils.String(d.Get("custom_subdomain_name").(string)),
 		},
-		Tags: tags.Expand(d.Get("tags").(map[string]interface{})),
+		Tags:     tags.Expand(d.Get("tags").(map[string]interface{})),
+		Identity: identity,
 	}
 
 	if kind == "QnAMaker" {
@@ -297,6 +343,12 @@ func resourceCognitiveAccountUpdate(d *pluginsdk.ResourceData, meta interface{})
 	locks.MultipleByName(&virtualNetworkNames, network.VirtualNetworkResourceName)
 	defer locks.UnlockMultipleByName(&virtualNetworkNames, network.VirtualNetworkResourceName)
 
+	identityRaw := d.Get("identity").([]interface{})
+	identity, err := expandCognitiveAccountIdentity(identityRaw)
+	if err != nil {
+		return fmt.Errorf("error expanding `identity`: %+v", err)
+	}
+
 	props := cognitiveservices.Account{
 		Sku: sku,
 		Properties: &cognitiveservices.AccountProperties{
@@ -304,7 +356,8 @@ func resourceCognitiveAccountUpdate(d *pluginsdk.ResourceData, meta interface{})
 			NetworkAcls:         networkAcls,
 			CustomSubDomainName: utils.String(d.Get("custom_subdomain_name").(string)),
 		},
-		Tags: tags.Expand(d.Get("tags").(map[string]interface{})),
+		Tags:     tags.Expand(d.Get("tags").(map[string]interface{})),
+		Identity: identity,
 	}
 
 	if kind := d.Get("kind"); kind == "QnAMaker" {
@@ -364,6 +417,14 @@ func resourceCognitiveAccountRead(d *pluginsdk.ResourceData, meta interface{}) e
 
 	if sku := resp.Sku; sku != nil {
 		d.Set("sku_name", sku.Name)
+	}
+
+	identity, err := flattenCognitiveAccountIdentity(resp.Identity)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("identity", identity); err != nil {
+		return fmt.Errorf("error setting `identity`: %+v", err)
 	}
 
 	if props := resp.Properties; props != nil {
@@ -482,6 +543,41 @@ func expandCognitiveAccountNetworkAcls(input []interface{}) (*cognitiveservices.
 	return &ruleSet, subnetIds
 }
 
+func expandCognitiveAccountIdentity(input []interface{}) (*cognitiveservices.Identity, error) {
+	if len(input) == 0 || input[0] == nil {
+		return nil, nil
+	}
+
+	v := input[0].(map[string]interface{})
+	managedServiceIdentity := cognitiveservices.Identity{
+		Type: cognitiveservices.IdentityType(v["type"].(string)),
+	}
+
+	var identityIdSet []interface{}
+	if identityIds, exists := v["identity_ids"]; exists {
+		identityIdSet = identityIds.(*pluginsdk.Set).List()
+	}
+
+	// If type contains `UserAssigned`, `identity_ids` must be specified and have at least 1 element
+	if managedServiceIdentity.Type == cognitiveservices.UserAssigned {
+		if len(identityIdSet) == 0 {
+			return nil, fmt.Errorf("`identity_ids` must have at least 1 element when `type` includes `UserAssigned`")
+		}
+
+		userAssignedIdentities := make(map[string]*cognitiveservices.UserAssignedIdentity)
+		for _, id := range identityIdSet {
+			userAssignedIdentities[id.(string)] = &cognitiveservices.UserAssignedIdentity{}
+		}
+
+		managedServiceIdentity.UserAssignedIdentities = userAssignedIdentities
+	} else if len(identityIdSet) > 0 {
+		// If type does _not_ contain `UserAssigned` (i.e. is set to `SystemAssigned` or defaulted to `None`), `identity_ids` is not allowed
+		return nil, fmt.Errorf("`identity_ids` can only be specified when `type` includes `UserAssigned`; but `type` is currently %q", managedServiceIdentity.Type)
+	}
+
+	return &managedServiceIdentity, nil
+}
+
 func flattenCognitiveAccountNetworkAcls(input *cognitiveservices.NetworkRuleSet) []interface{} {
 	if input == nil {
 		return []interface{}{}
@@ -522,4 +618,35 @@ func flattenCognitiveAccountNetworkAcls(input *cognitiveservices.NetworkRuleSet)
 	output["virtual_network_subnet_ids"] = pluginsdk.NewSet(pluginsdk.HashString, virtualNetworkRules)
 
 	return []interface{}{output}
+}
+
+func flattenCognitiveAccountIdentity(identity *cognitiveservices.Identity) ([]interface{}, error) {
+	if identity == nil {
+		return make([]interface{}, 0), nil
+	}
+
+	result := make(map[string]interface{})
+	result["type"] = string(identity.Type)
+
+	if identity.PrincipalID != nil {
+		result["principal_id"] = *identity.PrincipalID
+	}
+
+	if identity.TenantID != nil {
+		result["tenant_id"] = *identity.TenantID
+	}
+
+	identityIds := make([]interface{}, 0)
+	if identity.UserAssignedIdentities != nil {
+		for key := range identity.UserAssignedIdentities {
+			parsedId, err := msiParse.UserAssignedIdentityID(key)
+			if err != nil {
+				return nil, err
+			}
+			identityIds = append(identityIds, parsedId.ID())
+		}
+		result["identity_ids"] = pluginsdk.NewSet(pluginsdk.HashString, identityIds)
+	}
+
+	return []interface{}{result}, nil
 }

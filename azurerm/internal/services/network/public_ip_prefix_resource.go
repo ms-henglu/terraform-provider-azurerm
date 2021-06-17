@@ -136,7 +136,11 @@ func resourcePublicIpPrefixCreateUpdate(d *pluginsdk.ResourceData, meta interfac
 	prefixLength := d.Get("prefix_length").(int)
 	t := d.Get("tags").(map[string]interface{})
 
-	zones := &[]string{"1", "2"}
+	allZones, err := getZones(ctx, meta.(*clients.Client).Resource.ResourceProvidersClient, "publicIPPrefixes", location)
+	if err != nil {
+		return err
+	}
+	zones := allZones
 	// TODO - Remove in 3.0
 	if deprecatedZonesRaw, ok := d.GetOk("zones"); ok {
 		deprecatedZones := azure.ExpandZones(deprecatedZonesRaw.([]interface{}))
@@ -150,7 +154,7 @@ func resourcePublicIpPrefixCreateUpdate(d *pluginsdk.ResourceData, meta interfac
 		case "1", "2", "3":
 			zones = &[]string{availabilityZones.(string)}
 		case "Zone-Redundant":
-			zones = &[]string{"1", "2"}
+			zones = allZones
 		case "No-Zone":
 			zones = &[]string{}
 		}

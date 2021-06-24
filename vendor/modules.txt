@@ -332,7 +332,7 @@ github.com/hashicorp/terraform-exec/tfexec
 github.com/hashicorp/terraform-exec/tfinstall
 # github.com/hashicorp/terraform-json v0.10.0
 github.com/hashicorp/terraform-json
-# github.com/hashicorp/terraform-plugin-sdk v1.17.2
+# github.com/hashicorp/terraform-plugin-sdk v1.17.2 => C:\Users\henglu\go\src\github.com\ms-henglu\terraform-plugin-sdk
 ## explicit
 github.com/hashicorp/terraform-plugin-sdk/acctest
 github.com/hashicorp/terraform-plugin-sdk/helper/acctest
@@ -703,3 +703,4 @@ google.golang.org/protobuf/types/pluginpb
 # gopkg.in/yaml.v2 v2.3.0
 ## explicit
 gopkg.in/yaml.v2
+# github.com/hashicorp/terraform-plugin-sdk => C:\Users\henglu\go\src\github.com\ms-henglu\terraform-plugin-sdk

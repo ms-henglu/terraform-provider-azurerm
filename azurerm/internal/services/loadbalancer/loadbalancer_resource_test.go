@@ -162,6 +162,7 @@ func TestAccAzureRMLoadBalancer_privateIP(t *testing.T) {
 				check.That(data.ResourceName).Key("frontend_ip_configuration.0.private_ip_address").Exists(),
 			),
 		},
+		data.ImportStep(),
 	})
 }
 
@@ -485,7 +486,7 @@ resource "azurerm_lb" "test" {
   name                = "acctestlb-%d"
   resource_group_name = azurerm_resource_group.test.name
   location            = azurerm_resource_group.test.location
-  sku                 = "Basic"
+  sku                 = "Standard"
 
   frontend_ip_configuration {
     name                          = "Internal"

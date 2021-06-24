@@ -61,24 +61,6 @@ func resourcePublicIp() *pluginsdk.Resource {
 				}, false),
 			},
 
-			"availability_zone": {
-				Type:     pluginsdk.TypeString,
-				Optional: true,
-				//Default:  "Zone-Redundant",
-				Computed: true,
-				ForceNew: true,
-				ConflictsWith: []string{
-					"zones",
-				},
-				ValidateFunc: validation.StringInSlice([]string{
-					"No-Zone",
-					"1",
-					"2",
-					"3",
-					"Zone-Redundant",
-				}, false),
-			},
-
 			"ip_version": {
 				Type:             pluginsdk.TypeString,
 				Optional:         true,
@@ -147,22 +129,7 @@ func resourcePublicIp() *pluginsdk.Resource {
 				},
 			},
 
-			// TODO - 3.0 make Computed only
-			"zones": {
-				Type:     pluginsdk.TypeList,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-				ConflictsWith: []string{
-					"availability_zone",
-				},
-				Deprecated: "This property has been deprecated in favour of `availability_zone` due to a breaking behavioural change in Azure: https://azure.microsoft.com/en-us/updates/zone-behavior-change/",
-				MaxItems:   1,
-				Elem: &pluginsdk.Schema{
-					Type:         pluginsdk.TypeString,
-					ValidateFunc: validation.StringIsNotEmpty,
-				},
-			},
+			"zones": azure.SchemaSingleZone(),
 
 			"tags": tags.Schema(),
 		},
@@ -194,35 +161,12 @@ func resourcePublicIpCreateUpdate(d *pluginsdk.ResourceData, meta interface{}) e
 	location := azure.NormalizeLocation(d.Get("location").(string))
 	sku := d.Get("sku").(string)
 	t := d.Get("tags").(map[string]interface{})
-	// Default to Zone-Redundant - Legacy behaviour TODO - Switch to `No-Zone` in 3.0 to match service?
-	zones := &[]string{"1", "2"}
-	zonesSet := false
-	// TODO - Remove in 3.0
-	if deprecatedZonesRaw, ok := d.GetOk("zones"); ok {
-		zonesSet = true
-		deprecatedZones := azure.ExpandZones(deprecatedZonesRaw.([]interface{}))
-		if deprecatedZones != nil {
-			zones = deprecatedZones
-		}
-	}
+	zones := azure.ExpandZones(d.Get("zones").([]interface{}))
 
-	if availabilityZones, ok := d.GetOk("availability_zone"); ok {
-		zonesSet = true
-		switch availabilityZones.(string) {
-		case "1", "2", "3":
-			zones = &[]string{availabilityZones.(string)}
-		case "Zone-Redundant":
-			zones = &[]string{"1", "2"}
-		case "No-Zone":
-			zones = &[]string{}
+	if strings.EqualFold(sku, "basic") {
+		if zones != nil {
+			return fmt.Errorf("Basic SKU does not support Availability Zone scenarios. You need to use Standard SKU public IP for Availability Zone scenarios.")
 		}
-	}
-
-	if strings.EqualFold(sku, "Basic") {
-		if zonesSet && len(*zones) > 0 {
-			return fmt.Errorf("Availability Zones are not available on the `Basic` SKU")
-		}
-		zones = &[]string{}
 	}
 
 	idleTimeout := d.Get("idle_timeout_in_minutes").(int)
@@ -325,22 +269,7 @@ func resourcePublicIpRead(d *pluginsdk.ResourceData, meta interface{}) error {
 
 	d.Set("name", id.Name)
 	d.Set("resource_group_name", id.ResourceGroup)
-
-	availabilityZones := "No-Zone"
-	zonesDeprecated := make([]string, 0)
-	if resp.Zones != nil {
-		if len(*resp.Zones) > 1 {
-			availabilityZones = "Zone-Redundant"
-		}
-		if len(*resp.Zones) == 1 {
-			zones := *resp.Zones
-			availabilityZones = zones[0]
-			zonesDeprecated = zones
-		}
-	}
-
-	d.Set("availability_zone", availabilityZones)
-	d.Set("zones", zonesDeprecated)
+	d.Set("zones", resp.Zones)
 	d.Set("location", location.NormalizeNilable(resp.Location))
 
 	if sku := resp.Sku; sku != nil {

@@ -29,4 +29,6 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 )
 
+replace github.com/hashicorp/terraform-plugin-sdk/v2 => C:\Users\henglu\go\src\github.com\ms-henglu\terraform-plugin-sdk
+
 go 1.16

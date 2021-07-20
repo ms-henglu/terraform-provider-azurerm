@@ -27,8 +27,13 @@ func (r Registration) SupportedDataSources() map[string]*pluginsdk.Resource {
 // SupportedResources returns the supported Resources supported by this Service
 func (r Registration) SupportedResources() map[string]*pluginsdk.Resource {
 	return map[string]*pluginsdk.Resource{
-		"azurerm_machine_learning_workspace":         resourceMachineLearningWorkspace(),
-		"azurerm_machine_learning_inference_cluster": resourceAksInferenceCluster(),
-		"azurerm_machine_learning_compute_cluster":   resourceComputeCluster(),
+		"azurerm_machine_learning_workspace":           resourceMachineLearningWorkspace(),
+		"azurerm_machine_learning_inference_cluster":   resourceAksInferenceCluster(),
+		"azurerm_machine_learning_compute_cluster":     resourceComputeCluster(),
+		"azurerm_machine_learning_databricks":          resourceDatabricks(),
+		"azurerm_machine_learning_data_factory":        resourceDataFactory(),
+		"azurerm_machine_learning_data_lake_analytics": resourceDataLakeAnalytics(),
+		"azurerm_machine_learning_hdinsight":           resourceHDInsight(),
+		"azurerm_machine_learning_virtual_machine":     resourceVirtualMachine(),
 	}
 }

@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -224,6 +225,38 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 			"enable_pod_security_policy": {
 				Type:     pluginsdk.TypeBool,
 				Optional: true,
+			},
+
+			"http_proxy_config": {
+				Type:     pluginsdk.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"http_proxy": {
+							Type:     pluginsdk.TypeString,
+							Optional: true,
+						},
+
+						"https_proxy": {
+							Type:     pluginsdk.TypeString,
+							Optional: true,
+						},
+
+						"no_proxy": {
+							Type:     pluginsdk.TypeSet,
+							Optional: true,
+							Elem: &pluginsdk.Schema{
+								Type: pluginsdk.TypeString,
+							},
+						},
+
+						"trusted_ca": {
+							Type:     pluginsdk.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 
 			"identity": {
@@ -516,6 +549,12 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 				ForceNew:      true,
 				Computed:      true, // TODO -- remove this when deprecation resolves
 				ConflictsWith: []string{"private_link_enabled"},
+			},
+
+			"private_cluster_public_fqdn_enabled": {
+				Type:     pluginsdk.TypeBool,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"private_dns_zone_id": {
@@ -880,6 +919,10 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 		AuthorizedIPRanges:   apiServerAuthorizedIPRanges,
 	}
 
+	if v, ok := d.GetOk("private_cluster_public_fqdn_enabled"); ok {
+		apiAccessProfile.EnablePrivateClusterPublicFQDN = utils.Bool(v.(bool))
+	}
+
 	nodeResourceGroup := d.Get("node_resource_group").(string)
 
 	if d.Get("enable_pod_security_policy").(bool) {
@@ -909,6 +952,7 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 			WindowsProfile:         windowsProfile,
 			NetworkProfile:         networkProfile,
 			NodeResourceGroup:      utils.String(nodeResourceGroup),
+			HTTPProxyConfig:        expandKubernetesClusterHttpProxyConfig(d.Get("http_proxy_config").([]interface{})),
 		},
 		Tags: tags.Expand(t),
 	}
@@ -965,6 +1009,8 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 		parameters.ManagedClusterProperties.DiskEncryptionSetID = utils.String(v.(string))
 	}
 
+	j,_ := json.Marshal(parameters)
+	log.Printf("[INFO] body: %v", string(j))
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, parameters)
 	if err != nil {
 		return fmt.Errorf("creating Managed Kubernetes Cluster %q (Resource Group %q): %+v", name, resGroup, err)
@@ -1132,6 +1178,9 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		if v, ok := d.GetOk("private_dns_zone_id"); ok {
 			existing.ManagedClusterProperties.APIServerAccessProfile.PrivateDNSZone = utils.String(v.(string))
 		}
+		if v, ok := d.GetOk("private_cluster_public_fqdn_enabled"); ok {
+			existing.ManagedClusterProperties.APIServerAccessProfile.EnablePrivateClusterPublicFQDN = utils.Bool(v.(bool))
+		}
 	}
 
 	if d.HasChange("auto_scaler_profile") {
@@ -1253,6 +1302,11 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		existing.ManagedClusterProperties.AutoUpgradeProfile.UpgradeChannel = channel
 	}
 
+	if d.HasChange("http_proxy_config") {
+		updateCluster = true
+		existing.ManagedClusterProperties.HTTPProxyConfig = expandKubernetesClusterHttpProxyConfig(d.Get("http_proxy_config").([]interface{}))
+	}
+
 	if updateCluster {
 		log.Printf("[DEBUG] Updating the Kubernetes Cluster %q (Resource Group %q)..", id.ManagedClusterName, id.ResourceGroup)
 		future, err := clusterClient.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, existing)
@@ -1280,6 +1334,8 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Upgrading the version of Kubernetes to %q..", kubernetesVersion)
 		existing.ManagedClusterProperties.KubernetesVersion = utils.String(kubernetesVersion)
 
+		j,_ := json.Marshal(existing)
+		log.Printf("[INFO] body: %v", string(j))
 		future, err := clusterClient.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, existing)
 		if err != nil {
 			return fmt.Errorf("updating Managed Kubernetes Cluster %q (Resource Group %q): %+v", id.ManagedClusterName, id.ResourceGroup, err)
@@ -1311,6 +1367,8 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 			}
 		}
 
+		j,_ := json.Marshal(agentProfile)
+		log.Printf("[INFO] body: %v", string(j))
 		agentPool, err := nodePoolsClient.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, nodePoolName, agentProfile)
 		if err != nil {
 			return fmt.Errorf("updating Default Node Pool %q (Resource Group %q): %+v", id.ManagedClusterName, id.ResourceGroup, err)
@@ -1391,6 +1449,7 @@ func resourceKubernetesClusterRead(d *pluginsdk.ResourceData, meta interface{}) 
 			d.Set("private_link_enabled", accessProfile.EnablePrivateCluster)
 			d.Set("private_cluster_enabled", accessProfile.EnablePrivateCluster)
 			d.Set("private_dns_zone_id", accessProfile.PrivateDNSZone)
+			d.Set("private_cluster_public_fqdn_enabled", accessProfile.EnablePrivateClusterPublicFQDN)
 		}
 
 		addonProfiles := flattenKubernetesAddOnProfiles(props.AddonProfiles)
@@ -1425,6 +1484,10 @@ func resourceKubernetesClusterRead(d *pluginsdk.ResourceData, meta interface{}) 
 		linuxProfile := flattenKubernetesClusterLinuxProfile(props.LinuxProfile)
 		if err := d.Set("linux_profile", linuxProfile); err != nil {
 			return fmt.Errorf("setting `linux_profile`: %+v", err)
+		}
+
+		if err := d.Set("http_proxy_config", flattenKubernetesClusterHttpProxyConfig(props.HTTPProxyConfig)); err != nil {
+			return fmt.Errorf("setting `http_proxy_config`: %+v", err)
 		}
 
 		networkProfile := flattenKubernetesClusterNetworkProfile(props.NetworkProfile)
@@ -2175,6 +2238,50 @@ func flattenKubernetesClusterManagedClusterIdentity(input *containerservice.Mana
 	identity["type"] = string(input.Type)
 
 	return []interface{}{identity}, nil
+}
+
+func expandKubernetesClusterHttpProxyConfig(input []interface{}) *containerservice.ManagedClusterHTTPProxyConfig {
+	if len(input) == 0 || input[0] == nil {
+		return nil
+	}
+
+	config := input[0].(map[string]interface{})
+	return &containerservice.ManagedClusterHTTPProxyConfig{
+		HTTPProxy:  utils.String(config["http_proxy"].(string)),
+		HTTPSProxy: utils.String(config["https_proxy"].(string)),
+		NoProxy:    utils.ExpandStringSlice(config["no_proxy"].(*pluginsdk.Set).List()),
+		TrustedCa:  utils.String(config["trusted_ca"].(string)),
+	}
+}
+
+func flattenKubernetesClusterHttpProxyConfig(input *containerservice.ManagedClusterHTTPProxyConfig) []interface{} {
+	if input == nil {
+		return []interface{}{}
+	}
+
+	httpProxy := ""
+	if input.HTTPProxy != nil {
+		httpProxy = *input.HTTPProxy
+	}
+
+	httpsProxy := ""
+	if input.HTTPSProxy != nil {
+		httpsProxy = *input.HTTPSProxy
+	}
+
+	trustedCa := ""
+	if input.TrustedCa != nil {
+		trustedCa = *input.TrustedCa
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"http_proxy":  httpProxy,
+			"https_proxy": httpsProxy,
+			"no_proxy":    utils.FlattenStringSlice(input.NoProxy),
+			"trusted_ca":  trustedCa,
+		},
+	}
 }
 
 func flattenKubernetesClusterAutoScalerProfile(profile *containerservice.ManagedClusterPropertiesAutoScalerProfile) ([]interface{}, error) {

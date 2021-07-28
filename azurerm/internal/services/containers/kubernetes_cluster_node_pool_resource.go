@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -117,6 +118,18 @@ func resourceKubernetesClusterNodePool() *pluginsdk.Resource {
 				ForceNew: true,
 			},
 
+			"gpu_instance_profile": {
+				Type:     pluginsdk.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(containerservice.GPUInstanceProfileMIG1g),
+					string(containerservice.GPUInstanceProfileMIG2g),
+					string(containerservice.GPUInstanceProfileMIG3g),
+					string(containerservice.GPUInstanceProfileMIG4g),
+					string(containerservice.GPUInstanceProfileMIG7g),
+				}, false),
+			},
+
 			"kubelet_disk_type": {
 				Type:     pluginsdk.TypeString,
 				Optional: true,
@@ -207,6 +220,17 @@ func resourceKubernetesClusterNodePool() *pluginsdk.Resource {
 				}, false),
 			},
 
+			"os_sku": {
+				Type:     pluginsdk.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(containerservice.OSSKUUbuntu),
+					string(containerservice.OSSKUCBLMariner),
+				}, false),
+			},
+
 			"os_type": {
 				Type:     pluginsdk.TypeString,
 				Optional: true,
@@ -242,6 +266,12 @@ func resourceKubernetesClusterNodePool() *pluginsdk.Resource {
 				ForceNew:     true,
 				Default:      -1.0,
 				ValidateFunc: computeValidate.SpotMaxPrice,
+			},
+
+			"ultra_ssd_enabled": {
+				Type:     pluginsdk.TypeBool,
+				ForceNew: true,
+				Optional: true,
 			},
 
 			"vnet_subnet_id": {
@@ -324,7 +354,9 @@ func resourceKubernetesClusterNodePoolCreate(d *pluginsdk.ResourceData, meta int
 		OsType:                 containerservice.OSType(osType),
 		EnableAutoScaling:      utils.Bool(enableAutoScaling),
 		EnableFIPS:             utils.Bool(d.Get("fips_enabled").(bool)),
+		EnableUltraSSD:         utils.Bool(d.Get("ultra_ssd_enabled").(bool)),
 		EnableNodePublicIP:     utils.Bool(d.Get("enable_node_public_ip").(bool)),
+		GpuInstanceProfile:     containerservice.GPUInstanceProfile(d.Get("gpu_instance_profile").(string)),
 		KubeletDiskType:        containerservice.KubeletDiskType(d.Get("kubelet_disk_type").(string)),
 		Mode:                   mode,
 		ScaleSetPriority:       containerservice.ScaleSetPriority(priority),
@@ -336,6 +368,10 @@ func resourceKubernetesClusterNodePoolCreate(d *pluginsdk.ResourceData, meta int
 
 		// this must always be sent during creation, but is optional for auto-scaled clusters during update
 		Count: utils.Int32(int32(count)),
+	}
+
+	if osSku, ok := d.GetOk("os_sku"); ok {
+		profile.OsSKU =                  containerservice.OSSKU(osSku.(string))
 	}
 
 	if priority == string(containerservice.ScaleSetPrioritySpot) {
@@ -448,6 +484,8 @@ func resourceKubernetesClusterNodePoolCreate(d *pluginsdk.ResourceData, meta int
 		ManagedClusterAgentPoolProfileProperties: &profile,
 	}
 
+	j,_ := json.Marshal(parameters)
+	log.Printf("[INFO] body: %v", string(j))
 	future, err := poolsClient.CreateOrUpdate(ctx, resourceGroup, clusterName, name, parameters)
 	if err != nil {
 		return fmt.Errorf("creating/updating Managed Kubernetes Cluster Node Pool %q (Resource Group %q): %+v", name, resourceGroup, err)
@@ -525,6 +563,10 @@ func resourceKubernetesClusterNodePoolUpdate(d *pluginsdk.ResourceData, meta int
 
 	if d.HasChange("enable_node_public_ip") {
 		props.EnableNodePublicIP = utils.Bool(d.Get("enable_node_public_ip").(bool))
+	}
+
+	if d.HasChange("gpu_instance_profile") {
+		props.GpuInstanceProfile = containerservice.GPUInstanceProfile(d.Get("gpu_instance_profile").(string))
 	}
 
 	if d.HasChange("max_count") {
@@ -605,6 +647,8 @@ func resourceKubernetesClusterNodePoolUpdate(d *pluginsdk.ResourceData, meta int
 
 	log.Printf("[DEBUG] Updating existing Node Pool %q (Kubernetes Cluster %q / Resource Group %q)..", id.AgentPoolName, id.ManagedClusterName, id.ResourceGroup)
 	existing.ManagedClusterAgentPoolProfileProperties = props
+	j,_ := json.Marshal(existing)
+	log.Printf("[INFO] body: %v", string(j))
 	future, err := client.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, id.AgentPoolName, existing)
 	if err != nil {
 		return fmt.Errorf("updating Node Pool %q (Kubernetes Cluster %q / Resource Group %q): %+v", id.AgentPoolName, id.ManagedClusterName, id.ResourceGroup, err)
@@ -665,6 +709,8 @@ func resourceKubernetesClusterNodePoolRead(d *pluginsdk.ResourceData, meta inter
 		d.Set("enable_node_public_ip", props.EnableNodePublicIP)
 		d.Set("enable_host_encryption", props.EnableEncryptionAtHost)
 		d.Set("fips_enabled", props.EnableFIPS)
+		d.Set("gpu_instance_profile", props.GpuInstanceProfile)
+		d.Set("ultra_ssd_enabled", props.EnableUltraSSD)
 		d.Set("kubelet_disk_type", string(props.KubeletDiskType))
 
 		evictionPolicy := ""
@@ -737,6 +783,7 @@ func resourceKubernetesClusterNodePoolRead(d *pluginsdk.ResourceData, meta inter
 			osDiskType = props.OsDiskType
 		}
 		d.Set("os_disk_type", osDiskType)
+		d.Set("os_sku", string(props.OsSKU))
 		d.Set("os_type", string(props.OsType))
 
 		// not returned from the API if not Spot

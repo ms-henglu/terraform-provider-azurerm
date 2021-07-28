@@ -86,6 +86,18 @@ func SchemaDefaultNodePool() *pluginsdk.Schema {
 					ForceNew: true,
 				},
 
+				"gpu_instance_profile": {
+					Type:     pluginsdk.TypeString,
+					Optional: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(containerservice.GPUInstanceProfileMIG1g),
+						string(containerservice.GPUInstanceProfileMIG2g),
+						string(containerservice.GPUInstanceProfileMIG3g),
+						string(containerservice.GPUInstanceProfileMIG4g),
+						string(containerservice.GPUInstanceProfileMIG7g),
+					}, false),
+				},
+
 				"kubelet_disk_type": {
 					Type:     pluginsdk.TypeString,
 					Optional: true,
@@ -168,6 +180,23 @@ func SchemaDefaultNodePool() *pluginsdk.Schema {
 						string(containerservice.OSDiskTypeEphemeral),
 						string(containerservice.OSDiskTypeManaged),
 					}, false),
+				},
+
+				"os_sku": {
+					Type:     pluginsdk.TypeString,
+					Optional: true,
+					ForceNew: true,
+					Computed: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(containerservice.OSSKUUbuntu),
+						string(containerservice.OSSKUCBLMariner),
+					}, false),
+				},
+
+				"ultra_ssd_enabled": {
+					Type:     pluginsdk.TypeBool,
+					ForceNew: true,
+					Optional: true,
 				},
 
 				"vnet_subnet_id": {
@@ -642,6 +671,10 @@ func ExpandDefaultNodePool(d *pluginsdk.ResourceData) (*[]containerservice.Manag
 		profile.AvailabilityZones = availabilityZones
 	}
 
+	if gpuInstanceProfile := raw["gpu_instance_profile"].(string); gpuInstanceProfile != "" {
+		profile.GpuInstanceProfile = containerservice.GPUInstanceProfile(gpuInstanceProfile)
+	}
+
 	if maxPods := int32(raw["max_pods"].(int)); maxPods > 0 {
 		profile.MaxPods = utils.Int32(maxPods)
 	}
@@ -657,6 +690,14 @@ func ExpandDefaultNodePool(d *pluginsdk.ResourceData) (*[]containerservice.Manag
 	profile.OsDiskType = containerservice.OSDiskTypeManaged
 	if osDiskType := raw["os_disk_type"].(string); osDiskType != "" {
 		profile.OsDiskType = containerservice.OSDiskType(raw["os_disk_type"].(string))
+	}
+
+	if osSku := raw["os_sku"].(string); osSku != "" {
+		profile.OsSKU = containerservice.OSSKU(osSku)
+	}
+
+	if ultraSSDEnabled, ok := raw["ultra_ssd_enabled"]; ok {
+		profile.EnableUltraSSD = utils.Bool(ultraSSDEnabled.(bool))
 	}
 
 	if vnetSubnetID := raw["vnet_subnet_id"].(string); vnetSubnetID != "" {
@@ -921,6 +962,11 @@ func FlattenDefaultNodePool(input *[]containerservice.ManagedClusterAgentPoolPro
 		count = int(*agentPool.Count)
 	}
 
+	enableUltraSSD := false
+	if agentPool.EnableUltraSSD != nil {
+		enableUltraSSD = *agentPool.EnableUltraSSD
+	}
+
 	enableAutoScaling := false
 	if agentPool.EnableAutoScaling != nil {
 		enableAutoScaling = *agentPool.EnableAutoScaling
@@ -1036,8 +1082,10 @@ func FlattenDefaultNodePool(input *[]containerservice.ManagedClusterAgentPoolPro
 			"node_taints":                  []string{},
 			"os_disk_size_gb":              osDiskSizeGB,
 			"os_disk_type":                 string(osDiskType),
+			"os_sku":                       string(agentPool.OsSKU),
 			"tags":                         tags.Flatten(agentPool.Tags),
 			"type":                         string(agentPool.Type),
+			"ultra_ssd_enabled":            enableUltraSSD,
 			"vm_size":                      vmSize,
 			"orchestrator_version":         orchestratorVersion,
 			"proximity_placement_group_id": proximityPlacementGroupId,

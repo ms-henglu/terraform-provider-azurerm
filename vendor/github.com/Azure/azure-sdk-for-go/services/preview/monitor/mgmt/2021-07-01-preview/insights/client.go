@@ -1,4 +1,4 @@
-// Package insights implements the Azure ARM Insights service API version 2020-10-01.
+// Package insights implements the Azure ARM Insights service API version .
 //
 // Monitor Management Client
 package insights

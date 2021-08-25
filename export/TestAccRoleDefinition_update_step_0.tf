@@ -1,0 +1,22 @@
+
+provider "azurerm" {
+  features {}
+}
+
+data "azurerm_subscription" "primary" {
+}
+
+resource "azurerm_role_definition" "test" {
+  role_definition_id = "d68e80b5-ef58-4d9b-ab92-5b23060cee23"
+  name               = "acctestrd-210825040511083253"
+  scope              = data.azurerm_subscription.primary.id
+
+  permissions {
+    actions     = ["*"]
+    not_actions = []
+  }
+
+  assignable_scopes = [
+    data.azurerm_subscription.primary.id,
+  ]
+}

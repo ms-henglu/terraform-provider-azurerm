@@ -1,0 +1,16 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-datalake-210825042752715963"
+  location = "West Europe"
+}
+
+resource "azurerm_data_lake_store" "test" {
+  name                = "acctest082504275271596"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  tier                = "Commitment_1TB"
+}

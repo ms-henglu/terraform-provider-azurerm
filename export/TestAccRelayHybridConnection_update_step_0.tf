@@ -1,0 +1,23 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-210825043214309234"
+  location = "West Europe"
+}
+
+resource "azurerm_relay_namespace" "test" {
+  name                = "acctestrn-210825043214309234"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  sku_name = "Standard"
+}
+
+resource "azurerm_relay_hybrid_connection" "test" {
+  name                 = "acctestrnhc-210825043214309234"
+  resource_group_name  = azurerm_resource_group.test.name
+  relay_namespace_name = azurerm_relay_namespace.test.name
+}

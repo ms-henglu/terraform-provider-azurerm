@@ -1,0 +1,28 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-210825044444751998"
+  location = "West Europe"
+}
+
+resource "azurerm_api_management" "test" {
+  name                = "acctestAM-210825044444751998"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  publisher_name      = "pub1"
+  publisher_email     = "pub1@email.com"
+
+  sku_name = "Consumption_0"
+}
+
+resource "azurerm_api_management_property" "test" {
+  name                = "acctestAMProperty-210825044444751998"
+  resource_group_name = azurerm_api_management.test.resource_group_name
+  api_management_name = azurerm_api_management.test.name
+  display_name        = "TestProperty210825044444751998"
+  value               = "Test Value"
+  tags                = ["tag1", "tag2"]
+}

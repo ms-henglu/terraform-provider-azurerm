@@ -1,0 +1,14 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "testaccRG-210910021433381691"
+  location = "West Europe"
+}
+
+resource "azurerm_frontdoor_firewall_policy" "test" {
+  name                = "testAccFrontDoorWAF210910021433381691"
+  resource_group_name = azurerm_resource_group.test.name
+}

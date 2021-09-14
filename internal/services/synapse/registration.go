@@ -31,9 +31,13 @@ func (r Registration) SupportedResources() map[string]*pluginsdk.Resource {
 		"azurerm_synapse_integration_runtime_self_hosted": resourceSynapseIntegrationRuntimeSelfHosted(),
 		"azurerm_synapse_private_link_hub":                resourceSynapsePrivateLinkHub(),
 		"azurerm_synapse_managed_private_endpoint":        resourceSynapseManagedPrivateEndpoint(),
+		"azurerm_synapse_notebook":                        resourceSynapseNotebook(),
 		"azurerm_synapse_role_assignment":                 resourceSynapseRoleAssignment(),
+		"azurerm_synapse_spark_job_definition":            resourceSynapseSparkJobDefinition(),
 		"azurerm_synapse_spark_pool":                      resourceSynapseSparkPool(),
+		"azurerm_synapse_sql_script":                      resourceSynapseSqlScript(),
 		"azurerm_synapse_sql_pool":                        resourceSynapseSqlPool(),
 		"azurerm_synapse_workspace":                       resourceSynapseWorkspace(),
+		"azurerm_synapse_workspace_package":               resourceSynapseWorkspacePackage(),
 	}
 }

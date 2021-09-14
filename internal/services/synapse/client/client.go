@@ -114,6 +114,46 @@ func (client Client) LinkedServiceClient(workspaceName, synapseEndpointSuffix st
 	return &linkedServiceClient, nil
 }
 
+func (client Client) SQLScriptClient(workspaceName, synapseEndpointSuffix string) (*artifacts.SQLScriptClient, error) {
+	if client.synapseAuthorizer == nil {
+		return nil, fmt.Errorf("Synapse is not supported in this Azure Environment")
+	}
+	endpoint := buildEndpoint(workspaceName, synapseEndpointSuffix)
+	sqlScriptClient := artifacts.NewSQLScriptClient(endpoint)
+	sqlScriptClient.Client.Authorizer = client.synapseAuthorizer
+	return &sqlScriptClient, nil
+}
+
+func (client Client) NotebookClient(workspaceName, synapseEndpointSuffix string) (*artifacts.NotebookClient, error) {
+	if client.synapseAuthorizer == nil {
+		return nil, fmt.Errorf("Synapse is not supported in this Azure Environment")
+	}
+	endpoint := buildEndpoint(workspaceName, synapseEndpointSuffix)
+	notebookClient := artifacts.NewNotebookClient(endpoint)
+	notebookClient.Client.Authorizer = client.synapseAuthorizer
+	return &notebookClient, nil
+}
+
+func (client Client) SparkJobDefinitionClient(workspaceName, synapseEndpointSuffix string) (*artifacts.SparkJobDefinitionClient, error) {
+	if client.synapseAuthorizer == nil {
+		return nil, fmt.Errorf("Synapse is not supported in this Azure Environment")
+	}
+	endpoint := buildEndpoint(workspaceName, synapseEndpointSuffix)
+	sparkJobDefinitionClient := artifacts.NewSparkJobDefinitionClient(endpoint)
+	sparkJobDefinitionClient.Client.Authorizer = client.synapseAuthorizer
+	return &sparkJobDefinitionClient, nil
+}
+
+func (client Client) LibraryClient(workspaceName, synapseEndpointSuffix string) (*artifacts.LibraryClient, error) {
+	if client.synapseAuthorizer == nil {
+		return nil, fmt.Errorf("Synapse is not supported in this Azure Environment")
+	}
+	endpoint := buildEndpoint(workspaceName, synapseEndpointSuffix)
+	libraryClient := artifacts.NewLibraryClient(endpoint)
+	libraryClient.Client.Authorizer = client.synapseAuthorizer
+	return &libraryClient, nil
+}
+
 func buildEndpoint(workspaceName string, synapseEndpointSuffix string) string {
 	return fmt.Sprintf("https://%s.%s", workspaceName, synapseEndpointSuffix)
 }

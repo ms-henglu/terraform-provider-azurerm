@@ -36,5 +36,6 @@ func (r Registration) SupportedResources() map[string]*pluginsdk.Resource {
 		"azurerm_synapse_spark_pool":                      resourceSynapseSparkPool(),
 		"azurerm_synapse_sql_pool":                        resourceSynapseSqlPool(),
 		"azurerm_synapse_workspace":                       resourceSynapseWorkspace(),
+		"azurerm_generic_resource":                        resourceAzureGenericResource(),
 	}
 }

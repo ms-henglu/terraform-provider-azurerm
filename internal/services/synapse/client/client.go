@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	common2 "github.com/hashicorp/terraform-provider-azurerm/internal/services/synapse/common"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/synapse/2019-06-01-preview/managedvirtualnetwork"
 	"github.com/Azure/azure-sdk-for-go/services/preview/synapse/2020-08-01-preview/accesscontrol"
@@ -22,11 +23,14 @@ type Client struct {
 	WorkspaceClient                                  *synapse.WorkspacesClient
 	WorkspaceAadAdminsClient                         *synapse.WorkspaceAadAdminsClient
 	WorkspaceManagedIdentitySQLControlSettingsClient *synapse.WorkspaceManagedIdentitySQLControlSettingsClient
-
-	synapseAuthorizer autorest.Authorizer
+	CommonClient                                     *common2.CommonClient
+	synapseAuthorizer                                autorest.Authorizer
 }
 
 func NewClient(o *common.ClientOptions) *Client {
+	commonClient := common2.NewCommonClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
+	o.ConfigureClient(&commonClient.Client, o.ResourceManagerAuthorizer)
+
 	firewallRuleClient := synapse.NewIPFirewallRulesClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&firewallRuleClient.Client, o.ResourceManagerAuthorizer)
 
@@ -59,6 +63,7 @@ func NewClient(o *common.ClientOptions) *Client {
 	o.ConfigureClient(&workspaceManagedIdentitySQLControlSettingsClient.Client, o.ResourceManagerAuthorizer)
 
 	return &Client{
+		CommonClient:                                     &commonClient,
 		FirewallRulesClient:                              &firewallRuleClient,
 		IntegrationRuntimesClient:                        &integrationRuntimesClient,
 		IntegrationRuntimeAuthKeysClient:                 &integrationRuntimeAuthKeysClient,

@@ -1,0 +1,22 @@
+
+
+// TODO: switch to using regular regions when this is supported
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-attestation-210917031336917509"
+  location = "uksouth"
+}
+
+
+resource "azurerm_attestation_provider" "test" {
+  name                = "acctestapy7cws9ytyq"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  tags = {
+    ENV = "Test"
+  }
+}

@@ -75,6 +75,21 @@ func TestAccKustoDatabase_hotCachePeriod(t *testing.T) {
 	})
 }
 
+func TestAccKustoDatabase_readonly(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_kusto_database", "test")
+	r := KustoDatabaseResource{}
+
+	data.ResourceTest(t, r, []acceptance.TestStep{
+		{
+			Config: r.readonly(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+	})
+}
+
 func (KustoDatabaseResource) basic(data acceptance.TestData) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
@@ -102,6 +117,38 @@ resource "azurerm_kusto_database" "test" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   cluster_name        = azurerm_kusto_cluster.cluster.name
+}
+`, data.RandomInteger, data.Locations.Primary, data.RandomString, data.RandomInteger)
+}
+
+func (KustoDatabaseResource) readonly(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "rg" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_kusto_cluster" "cluster" {
+  name                = "acctestkc%s"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  sku {
+    name     = "Dev(No SLA)_Standard_D11_v2"
+    capacity = 1
+  }
+}
+
+resource "azurerm_kusto_database" "test" {
+  name                = "acctestkd-%d"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  cluster_name        = azurerm_kusto_cluster.cluster.name
+  type                = "ReadOnlyFollowing"
 }
 `, data.RandomInteger, data.Locations.Primary, data.RandomString, data.RandomInteger)
 }

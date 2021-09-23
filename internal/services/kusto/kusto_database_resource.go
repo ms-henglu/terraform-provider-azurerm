@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-provider-azurerm/internal/services/kusto/parse"
 	kustoValidate "github.com/hashicorp/terraform-provider-azurerm/internal/services/kusto/validate"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
+	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/validation"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/timeouts"
 	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
@@ -56,6 +57,7 @@ func resourceKustoDatabase() *pluginsdk.Resource {
 			"soft_delete_period": {
 				Type:         pluginsdk.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ValidateFunc: validate.ISO8601Duration,
 			},
 
@@ -63,6 +65,17 @@ func resourceKustoDatabase() *pluginsdk.Resource {
 				Type:         pluginsdk.TypeString,
 				Optional:     true,
 				ValidateFunc: validate.ISO8601Duration,
+			},
+
+			"type": {
+				Type:     pluginsdk.TypeString,
+				Optional: true,
+				Default:  string(kusto.KindReadWrite),
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(kusto.KindReadWrite),
+					string(kusto.KindReadOnlyFollowing),
+				}, false),
 			},
 
 			"size": {
@@ -75,31 +88,32 @@ func resourceKustoDatabase() *pluginsdk.Resource {
 
 func resourceKustoDatabaseCreateUpdate(d *pluginsdk.ResourceData, meta interface{}) error {
 	client := meta.(*clients.Client).Kusto.DatabasesClient
+	subscriptionId := meta.(*clients.Client).Account.SubscriptionId
 	ctx, cancel := timeouts.ForCreateUpdate(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
 	log.Printf("[INFO] preparing arguments for Azure Kusto Database creation.")
 
-	name := d.Get("name").(string)
-	resourceGroup := d.Get("resource_group_name").(string)
-	clusterName := d.Get("cluster_name").(string)
+	id := parse.NewDatabaseID(subscriptionId, d.Get("resource_group_name").(string), d.Get("cluster_name").(string), d.Get("name").(string))
 
 	if d.IsNewResource() {
-		existing, err := client.Get(ctx, resourceGroup, clusterName, name)
+		existing, err := client.Get(ctx, id.ResourceGroup, id.ClusterName, id.Name)
 		if err != nil {
 			if !utils.ResponseWasNotFound(existing.Response) {
-				return fmt.Errorf("checking for presence of existing Kusto Database %q (Resource Group %q, Cluster %q): %s", name, resourceGroup, clusterName, err)
+				return fmt.Errorf("checking for presence of existing %q: %+v", id, err)
 			}
 		}
 
 		if existing.Value != nil {
-			database, ok := existing.Value.AsReadWriteDatabase()
-			if !ok {
-				return fmt.Errorf("Exisiting Resource is not a Kusto Read/Write Database %q (Resource Group %q, Cluster %q)", name, resourceGroup, clusterName)
+			if database, ok := existing.Value.AsReadWriteDatabase(); ok {
+				if database.ID != nil && *database.ID != "" {
+					return tf.ImportAsExistsError("azurerm_kusto_database", *database.ID)
+				}
 			}
-
-			if database.ID != nil && *database.ID != "" {
-				return tf.ImportAsExistsError("azurerm_kusto_database", *database.ID)
+			if database, ok := existing.Value.AsReadOnlyFollowingDatabase(); ok {
+				if database.ID != nil && *database.ID != "" {
+					return tf.ImportAsExistsError("azurerm_kusto_database", *database.ID)
+				}
 			}
 		}
 	}
@@ -108,38 +122,35 @@ func resourceKustoDatabaseCreateUpdate(d *pluginsdk.ResourceData, meta interface
 
 	databaseProperties := expandKustoDatabaseProperties(d)
 
-	readWriteDatabase := kusto.ReadWriteDatabase{
-		Name:                        &name,
-		Location:                    &location,
-		ReadWriteDatabaseProperties: databaseProperties,
+	var database kusto.BasicDatabase
+	if d.Get("type").(string) == string(kusto.KindReadWrite) {
+		database = kusto.ReadWriteDatabase{
+			Name:                        utils.String(id.Name),
+			Location:                    &location,
+			ReadWriteDatabaseProperties: databaseProperties,
+		}
+	} else {
+		if databaseProperties.HotCachePeriod != nil {
+			return fmt.Errorf("hot_cache_period is not appliable when use ReadOnlyFollowing kind")
+		}
+		database = kusto.ReadOnlyFollowingDatabase{
+			Name:     utils.String(id.Name),
+			Location: &location,
+			ReadOnlyFollowingDatabaseProperties: &kusto.ReadOnlyFollowingDatabaseProperties{
+				SoftDeletePeriod: databaseProperties.SoftDeletePeriod,
+			},
+		}
 	}
 
-	future, err := client.CreateOrUpdate(ctx, resourceGroup, clusterName, name, readWriteDatabase)
+	future, err := client.CreateOrUpdate(ctx, id.ResourceGroup, id.ClusterName, id.Name, database)
 	if err != nil {
-		return fmt.Errorf("creating or updating Kusto Database %q (Resource Group %q, Cluster %q): %+v", name, resourceGroup, clusterName, err)
+		return fmt.Errorf("creating or updating %q: %+v", id, err)
 	}
 
 	if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for completion of Kusto Database %q (Resource Group %q, Cluster %q): %+v", name, resourceGroup, clusterName, err)
+		return fmt.Errorf("waiting for completion of %q: %+v", id, err)
 	}
-
-	resp, err := client.Get(ctx, resourceGroup, clusterName, name)
-	if err != nil {
-		return fmt.Errorf("retrieving Kusto Database %q (Resource Group %q, Cluster %q): %+v", name, resourceGroup, clusterName, err)
-	}
-	if resp.Value == nil {
-		return fmt.Errorf("retrieving Kusto Database %q (Resource Group %q, Cluster %q): Invalid resource response", name, resourceGroup, clusterName)
-	}
-
-	database, ok := resp.Value.AsReadWriteDatabase()
-	if !ok {
-		return fmt.Errorf("Resource is not a Read/Write Database %q (Resource Group %q, Cluster %q)", name, resourceGroup, clusterName)
-	}
-	if database.ID == nil || *database.ID == "" {
-		return fmt.Errorf("Cannot read ID for Kusto Database %q (Resource Group %q, Cluster %q)", name, resourceGroup, clusterName)
-	}
-
-	d.SetId(*database.ID)
+	d.SetId(id.ID())
 
 	return resourceKustoDatabaseRead(d, meta)
 }
@@ -160,33 +171,46 @@ func resourceKustoDatabaseRead(d *pluginsdk.ResourceData, meta interface{}) erro
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("retrieving Kusto Database %q (Resource Group %q, Cluster %q): %+v", id.Name, id.ResourceGroup, id.ClusterName, err)
+		return fmt.Errorf("retrieving %q: %+v", id, err)
 	}
 
 	if resp.Value == nil {
-		return fmt.Errorf("retrieving Kusto Database %q (Resource Group %q, Cluster %q): Invalid resource response", id.Name, id.ResourceGroup, id.ClusterName)
-	}
-
-	database, ok := resp.Value.AsReadWriteDatabase()
-	if !ok {
-		return fmt.Errorf("Existing resource is not a Read/Write Database (Resource Group %q, Cluster %q): %q", id.ResourceGroup, id.ClusterName, id.Name)
+		return fmt.Errorf("retrieving %q: Invalid resource response", id)
 	}
 
 	d.Set("name", id.Name)
 	d.Set("resource_group_name", id.ResourceGroup)
 	d.Set("cluster_name", id.ClusterName)
 
-	if location := database.Location; location != nil {
-		d.Set("location", azure.NormalizeLocation(*location))
-	}
-
-	if props := database.ReadWriteDatabaseProperties; props != nil {
-		d.Set("hot_cache_period", props.HotCachePeriod)
-		d.Set("soft_delete_period", props.SoftDeletePeriod)
-
-		if statistics := props.Statistics; statistics != nil {
-			d.Set("size", statistics.Size)
+	if database, ok := resp.Value.AsReadWriteDatabase(); ok {
+		if location := database.Location; location != nil {
+			d.Set("location", azure.NormalizeLocation(*location))
 		}
+
+		if props := database.ReadWriteDatabaseProperties; props != nil {
+			d.Set("hot_cache_period", props.HotCachePeriod)
+			d.Set("soft_delete_period", props.SoftDeletePeriod)
+
+			if statistics := props.Statistics; statistics != nil {
+				d.Set("size", statistics.Size)
+			}
+		}
+		d.Set("type", kusto.KindReadWrite)
+	}
+	if database, ok := resp.Value.AsReadOnlyFollowingDatabase(); ok {
+		if location := database.Location; location != nil {
+			d.Set("location", azure.NormalizeLocation(*location))
+		}
+
+		if props := database.ReadOnlyFollowingDatabaseProperties; props != nil {
+			d.Set("hot_cache_period", props.HotCachePeriod)
+			d.Set("soft_delete_period", props.SoftDeletePeriod)
+
+			if statistics := props.Statistics; statistics != nil {
+				d.Set("size", statistics.Size)
+			}
+		}
+		d.Set("type", kusto.KindReadOnlyFollowing)
 	}
 
 	return nil

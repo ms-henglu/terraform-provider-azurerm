@@ -56,6 +56,7 @@ The following arguments are supported:
 
 * `soft_delete_period` - (Optional) The time the data should be kept before it stops being accessible to queries as ISO 8601 timespan. Default is unlimited. For more information see: [ISO 8601 Timespan](https://en.wikipedia.org/wiki/ISO_8601#Durations)
 
+* `type` - (Optional) The type of the Kusto Database. Accepted values are `ReadOnlyFollowing` and `ReadWrite`. Defaults to `ReadWrite`. Changing this forces a new resource to be created.
 
 ## Attributes Reference
 

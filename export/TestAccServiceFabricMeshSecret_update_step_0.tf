@@ -1,0 +1,18 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-sfm-210924011448842650"
+  location = "West Europe"
+}
+
+resource "azurerm_service_fabric_mesh_secret" "test" {
+  name                = "accTest-210924011448842650"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  content_type        = "string"
+
+  description = "Test Description"
+}

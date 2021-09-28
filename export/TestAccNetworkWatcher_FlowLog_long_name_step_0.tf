@@ -1,0 +1,48 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  #           01234567890123456789012345678901234567890123456789 = 40
+  name     = "acctestRG-watcher-01234567890123456789012345678901"
+  location = "West Europe"
+}
+
+resource "azurerm_network_security_group" "test" {
+  #           		     01234567890123456789012345678901234567890123456789 = 40
+  name                = "acctestNSG0123456789012345678901234567890123456789"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_network_watcher" "test" {
+  name                = "acctest-NW-210928075747628849"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_storage_account" "test" {
+  name                = "acctestsa628849"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  account_tier              = "Standard"
+  account_kind              = "StorageV2"
+  account_replication_type  = "LRS"
+  enable_https_traffic_only = true
+}
+
+resource "azurerm_network_watcher_flow_log" "test" {
+  network_watcher_name = azurerm_network_watcher.test.name
+  resource_group_name  = azurerm_resource_group.test.name
+
+  network_security_group_id = azurerm_network_security_group.test.id
+  storage_account_id        = azurerm_storage_account.test.id
+  enabled                   = true
+
+  retention_policy {
+    enabled = false
+    days    = 0
+  }
+}

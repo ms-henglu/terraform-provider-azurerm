@@ -1,6 +1,7 @@
 package synapse
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 	"time"
@@ -59,6 +60,21 @@ func resourceSynapseIntegrationRuntimeSelfHosted() *pluginsdk.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 
+			"rbac_authorization": {
+				Type:     pluginsdk.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"resource_id": {
+							Type:         pluginsdk.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+						},
+					},
+				},
+			},
+
 			"authorization_key_primary": {
 				Type:     pluginsdk.TypeString,
 				Computed: true,
@@ -100,6 +116,7 @@ func resourceSynapseIntegrationRuntimeSelfHostedCreateUpdate(d *pluginsdk.Resour
 		Properties: synapse.SelfHostedIntegrationRuntime{
 			Description: utils.String(d.Get("description").(string)),
 			Type:        synapse.TypeSelfHosted,
+			SelfHostedIntegrationRuntimeTypeProperties: expandSynapseIntegrationRuntimeSelfHostedTypeProperties(d),
 		},
 	}
 
@@ -148,6 +165,19 @@ func resourceSynapseIntegrationRuntimeSelfHostedRead(d *pluginsdk.ResourceData, 
 
 	d.Set("description", selfHostedIntegrationRuntime.Description)
 
+	if props := selfHostedIntegrationRuntime.SelfHostedIntegrationRuntimeTypeProperties; props != nil {
+		// LinkedInfo BasicLinkedIntegrationRuntimeType
+		if linkedInfo := props.LinkedInfo; linkedInfo != nil {
+			rbacAuthorization, _ := linkedInfo.AsLinkedIntegrationRuntimeRbacAuthorization()
+			if rbacAuthorization != nil {
+				if err := d.Set("rbac_authorization", pluginsdk.NewSet(resourceSynapseIntegrationRuntimeSelfHostedRbacAuthorizationHash, flattenSynapseIntegrationRuntimeSelfHostedTypePropertiesRbacAuthorization(rbacAuthorization))); err != nil {
+					return fmt.Errorf("setting `rbac_authorization`: %#v", err)
+				}
+			}
+		}
+		return nil
+	}
+
 	respKey, err := authKeysClient.List(ctx, id.ResourceGroup, id.WorkspaceName, id.Name)
 	if err != nil {
 		if utils.ResponseWasNotFound(respKey.Response) {
@@ -184,4 +214,39 @@ func resourceSynapseIntegrationRuntimeSelfHostedDelete(d *pluginsdk.ResourceData
 	}
 
 	return nil
+}
+
+func expandSynapseIntegrationRuntimeSelfHostedTypeProperties(d *pluginsdk.ResourceData) *synapse.SelfHostedIntegrationRuntimeTypeProperties {
+	if _, ok := d.GetOk("rbac_authorization"); ok {
+		rbacAuthorization := d.Get("rbac_authorization").(*pluginsdk.Set).List()
+		rbacConfig := rbacAuthorization[0].(map[string]interface{})
+		rbac := rbacConfig["resource_id"].(string)
+		linkedInfo := &synapse.SelfHostedIntegrationRuntimeTypeProperties{
+			LinkedInfo: &synapse.LinkedIntegrationRuntimeRbacAuthorization{
+				ResourceID:        &rbac,
+				AuthorizationType: synapse.AuthorizationTypeRBAC,
+			},
+		}
+		return linkedInfo
+	}
+	return nil
+}
+
+func flattenSynapseIntegrationRuntimeSelfHostedTypePropertiesRbacAuthorization(input *synapse.LinkedIntegrationRuntimeRbacAuthorization) []interface{} {
+	result := make(map[string]interface{})
+	result["resource_id"] = *input.ResourceID
+
+	return []interface{}{result}
+}
+
+func resourceSynapseIntegrationRuntimeSelfHostedRbacAuthorizationHash(v interface{}) int {
+	var buf bytes.Buffer
+
+	if m, ok := v.(map[string]interface{}); ok {
+		if v, ok := m["resource_id"]; ok {
+			buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+		}
+	}
+
+	return pluginsdk.HashString(buf.String())
 }

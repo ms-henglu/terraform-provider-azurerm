@@ -1,0 +1,17 @@
+
+provider "azurerm" {
+  features {}
+}
+
+data "azurerm_subscription" "primary" {
+}
+
+data "azurerm_client_config" "test" {
+}
+
+resource "azurerm_role_assignment" "test" {
+  name                 = "56b2a5e2-de11-4656-97e7-b245a0eeb3eb"
+  scope                = data.azurerm_subscription.primary.id
+  role_definition_name = "Log Analytics Reader"
+  principal_id         = data.azurerm_client_config.test.object_id
+}

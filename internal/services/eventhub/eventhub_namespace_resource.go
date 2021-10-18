@@ -1,6 +1,7 @@
 package eventhub
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -137,7 +138,7 @@ func resourceEventHubNamespace() *pluginsdk.Resource {
 
 						// 128 limit per https://docs.microsoft.com/azure/event-hubs/event-hubs-quotas
 						"virtual_network_rule": {
-							Type:       pluginsdk.TypeList,
+							Type:       pluginsdk.TypeSet,
 							Optional:   true,
 							MaxItems:   128,
 							ConfigMode: pluginsdk.SchemaConfigModeAttr,
@@ -159,6 +160,7 @@ func resourceEventHubNamespace() *pluginsdk.Resource {
 									},
 								},
 							},
+							Set: hashAnalysisServicesServerIpv4FirewallRule,
 						},
 
 						// 128 limit per https://docs.microsoft.com/azure/event-hubs/event-hubs-quotas
@@ -502,10 +504,10 @@ func expandEventHubNamespaceNetworkRuleset(input []interface{}) *networkrulesets
 		ruleset.TrustedServiceAccessEnabled = utils.Bool(v.(bool))
 	}
 
-	if v, ok := block["virtual_network_rule"].([]interface{}); ok {
-		if len(v) > 0 {
+	if v, ok := block["virtual_network_rule"].(*pluginsdk.Set); ok {
+		if len(v.List()) > 0 {
 			var rules []networkrulesets.NWRuleSetVirtualNetworkRules
-			for _, r := range v {
+			for _, r := range v.List() {
 				rblock := r.(map[string]interface{})
 				rules = append(rules, networkrulesets.NWRuleSetVirtualNetworkRules{
 					Subnet: &networkrulesets.Subnet{
@@ -611,4 +613,15 @@ func flattenEventHubIdentity(input *identity.SystemUserAssignedIdentityMap) []in
 
 	config := input.ToExpandedConfig()
 	return eventhubNamespaceIdentityType{}.Flatten(&config)
+}
+
+
+func hashAnalysisServicesServerIpv4FirewallRule(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["subnet_id"].(string))))
+	buf.WriteString(fmt.Sprintf("%v-", m["ignore_missing_virtual_network_service_endpoint"].(bool)))
+
+	return pluginsdk.HashString(buf.String())
 }

@@ -1,0 +1,25 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-211021235304422945"
+  location = "West Europe"
+}
+
+resource "azurerm_mysql_flexible_server" "test" {
+  name                   = "acctest-fs-211021235304422945"
+  resource_group_name    = azurerm_resource_group.test.name
+  location               = azurerm_resource_group.test.location
+  administrator_login    = "adminTerraform"
+  administrator_password = "QAZwsx123"
+  sku_name               = "B_Standard_B1s"
+}
+
+resource "azurerm_mysql_flexible_server_configuration" "test" {
+  name                = "interactive_timeout"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  server_name         = "${azurerm_mysql_flexible_server.test.name}"
+  value               = "30"
+}

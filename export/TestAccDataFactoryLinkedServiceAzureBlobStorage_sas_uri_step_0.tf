@@ -1,0 +1,28 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-df-211022001855067412"
+  location = "West Europe"
+}
+
+resource "azurerm_data_factory" "test" {
+  name                = "acctestdf211022001855067412"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+data "azurerm_client_config" "current" {
+}
+
+resource "azurerm_data_factory_linked_service_azure_blob_storage" "test" {
+  name                = "acctestBlobStorage211022001855067412"
+  resource_group_name = azurerm_resource_group.test.name
+  data_factory_name   = azurerm_data_factory.test.name
+  sas_uri             = "https://storageaccountname.blob.core.windows.net/sascontainer/sasblob.txt?sv=2019-02-02&st=2019-04-29T22:18:26Z&se=2019-04-30T02:23:26Z&sr=b&sp=rw&sip=168.1.5.60-168.1.5.70&spr=https&sig=koLniLcK0tMLuMfYeuSQwB+BLnWibhPqnrINxaIRbvU<"
+}

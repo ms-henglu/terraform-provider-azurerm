@@ -1,0 +1,48 @@
+
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-211022002531654623"
+  location = "West Europe"
+}
+
+resource "azurerm_storage_account" "test" {
+  name                     = "acctestsagwya6"
+  resource_group_name      = azurerm_resource_group.test.name
+  location                 = azurerm_resource_group.test.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_storage_table" "test" {
+  name                 = "acctestst211022002531654623"
+  storage_account_name = azurerm_storage_account.test.name
+}
+
+
+resource "azurerm_storage_table_entity" "test" {
+  storage_account_name = azurerm_storage_account.test.name
+  table_name           = azurerm_storage_table.test.name
+
+  partition_key = "test_partition211022002531654623"
+  row_key       = "test_row211022002531654623"
+  entity = {
+    Foo = "Bar"
+  }
+}
+
+
+resource "azurerm_storage_table_entity" "import" {
+  storage_account_name = azurerm_storage_account.test.name
+  table_name           = azurerm_storage_table.test.name
+
+  partition_key = "test_partition211022002531654623"
+  row_key       = "test_row211022002531654623"
+  entity = {
+    Foo = "Bar"
+  }
+}

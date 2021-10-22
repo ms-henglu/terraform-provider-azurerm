@@ -196,6 +196,8 @@ The following arguments are supported:
 
 * `terminate_notification` - (Optional) A `terminate_notification` block as defined below.
 
+* `uefi` - (Optional) A `uefi` block as defined below. Changing this forces a new resource to be created.
+
 * `upgrade_mode` - (Optional) Specifies how Upgrades (e.g. changing the Image/SKU) should be performed to Virtual Machine Instances. Possible values are `Automatic`, `Manual` and `Rolling`. Defaults to `Manual`.
 
 * `zone_balance` - (Optional) Should the Virtual Machines in this Scale Set be strictly evenly distributed across Availability Zones? Defaults to `false`. Changing this forces a new resource to be created.
@@ -479,6 +481,14 @@ A `terminate_notification` block supports the following:
 * `sku` - (Optional) Specifies the SKU of the image used to create the virtual machines.
 
 * `version` - (Optional) Specifies the version of the image used to create the virtual machines.
+
+---
+
+`uefi` supports the following:
+
+* `secure_boot_enabled` - (Optional) Specifies whether secure boot should be enabled on the virtual machine. Defaults to `false`.
+
+* `v_tpm_enabled` - (Optional) Specifies whether vTPM should be enabled on the virtual machine. Defaults to `false`.
 
 ## Attributes Reference
 

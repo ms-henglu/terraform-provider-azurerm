@@ -251,6 +251,28 @@ func resourceWindowsVirtualMachineScaleSet() *pluginsdk.Resource {
 				ValidateFunc: computeValidate.VirtualMachineTimeZone(),
 			},
 
+			"uefi": {
+				Type:     pluginsdk.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"secure_boot_enabled": {
+							Type:     pluginsdk.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+
+						"v_tpm_enabled": {
+							Type:     pluginsdk.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
+
 			"upgrade_mode": {
 				Type:     pluginsdk.TypeString,
 				Optional: true,
@@ -478,6 +500,15 @@ func resourceWindowsVirtualMachineScaleSetCreate(d *pluginsdk.ResourceData, meta
 		virtualMachineProfile.SecurityProfile = &compute.SecurityProfile{
 			EncryptionAtHost: utils.Bool(encryptionAtHostEnabled.(bool)),
 		}
+	}
+
+	uefiSetting := expandVirtualMachineUefiSettings(d.Get("uefi").([]interface{}))
+	if uefiSetting != nil {
+		if virtualMachineProfile.SecurityProfile == nil {
+			virtualMachineProfile.SecurityProfile = &compute.SecurityProfile{}
+		}
+		virtualMachineProfile.SecurityProfile.UefiSettings = uefiSetting
+		virtualMachineProfile.SecurityProfile.SecurityType = compute.SecurityTypesTrustedLaunch
 	}
 
 	if evictionPolicyRaw, ok := d.GetOk("eviction_policy"); ok {
@@ -812,6 +843,17 @@ func resourceWindowsVirtualMachineScaleSetUpdate(d *pluginsdk.ResourceData, meta
 		}
 	}
 
+	if d.HasChange("uefi") {
+		if updateProps.VirtualMachineProfile.SecurityProfile == nil {
+			updateProps.VirtualMachineProfile.SecurityProfile = &compute.SecurityProfile{}
+		}
+		uefiSetting := expandVirtualMachineUefiSettings(d.Get("uefi").([]interface{}))
+		if uefiSetting != nil {
+			updateProps.VirtualMachineProfile.SecurityProfile.UefiSettings = uefiSetting
+			updateProps.VirtualMachineProfile.SecurityProfile.SecurityType = compute.SecurityTypesTrustedLaunch
+		}
+	}
+
 	if d.HasChange("license_type") {
 		license := d.Get("license_type").(string)
 		if license == "" {
@@ -1109,6 +1151,10 @@ func resourceWindowsVirtualMachineScaleSetRead(d *pluginsdk.ResourceData, meta i
 			encryptionAtHostEnabled = *profile.SecurityProfile.EncryptionAtHost
 		}
 		d.Set("encryption_at_host_enabled", encryptionAtHostEnabled)
+
+		if profile.SecurityProfile != nil {
+			d.Set("uefi", flattenVirtualMachineUefiSettings(profile.SecurityProfile.UefiSettings))
+		}
 	}
 
 	if err := d.Set("zones", resp.Zones); err != nil {

@@ -234,6 +234,28 @@ func resourceLinuxVirtualMachine() *pluginsdk.Resource {
 
 			"source_image_reference": sourceImageReferenceSchema(true),
 
+			"uefi": {
+				Type:     pluginsdk.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"secure_boot_enabled": {
+							Type:     pluginsdk.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+
+						"v_tpm_enabled": {
+							Type:     pluginsdk.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
+
 			"virtual_machine_scale_set_id": {
 				Type:     pluginsdk.TypeString,
 				Optional: true,
@@ -424,6 +446,15 @@ func resourceLinuxVirtualMachineCreate(d *pluginsdk.ResourceData, meta interface
 		params.VirtualMachineProperties.SecurityProfile = &compute.SecurityProfile{
 			EncryptionAtHost: utils.Bool(encryptionAtHostEnabled.(bool)),
 		}
+	}
+
+	uefiSetting := expandVirtualMachineUefiSettings(d.Get("uefi").([]interface{}))
+	if uefiSetting != nil {
+		if params.VirtualMachineProperties.SecurityProfile == nil {
+			params.VirtualMachineProperties.SecurityProfile = &compute.SecurityProfile{}
+		}
+		params.VirtualMachineProperties.SecurityProfile.UefiSettings = uefiSetting
+		params.VirtualMachineProperties.SecurityProfile.SecurityType = compute.SecurityTypesTrustedLaunch
 	}
 
 	if !provisionVMAgent && allowExtensionOperations {
@@ -692,6 +723,10 @@ func resourceLinuxVirtualMachineRead(d *pluginsdk.ResourceData, meta interface{}
 		encryptionAtHostEnabled = *props.SecurityProfile.EncryptionAtHost
 	}
 	d.Set("encryption_at_host_enabled", encryptionAtHostEnabled)
+
+	if props.SecurityProfile != nil {
+		d.Set("uefi", flattenVirtualMachineUefiSettings(props.SecurityProfile.UefiSettings))
+	}
 
 	d.Set("virtual_machine_id", props.VMID)
 
@@ -967,6 +1002,19 @@ func resourceLinuxVirtualMachineUpdate(d *pluginsdk.ResourceData, meta interface
 
 		update.VirtualMachineProperties.SecurityProfile = &compute.SecurityProfile{
 			EncryptionAtHost: utils.Bool(d.Get("encryption_at_host_enabled").(bool)),
+		}
+	}
+
+	if d.HasChange("uefi") {
+		shouldUpdate = true
+
+		if update.VirtualMachineProperties.SecurityProfile == nil {
+			update.VirtualMachineProperties.SecurityProfile = &compute.SecurityProfile{}
+		}
+		uefiSetting := expandVirtualMachineUefiSettings(d.Get("uefi").([]interface{}))
+		if uefiSetting != nil {
+			update.VirtualMachineProperties.SecurityProfile.UefiSettings = uefiSetting
+			update.VirtualMachineProperties.SecurityProfile.SecurityType = compute.SecurityTypesTrustedLaunch
 		}
 	}
 

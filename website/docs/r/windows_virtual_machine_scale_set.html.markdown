@@ -188,6 +188,8 @@ The following arguments are supported:
 
 * `timezone` - (Optional) Specifies the time zone of the virtual machine, [the possible values are defined here](https://jackstromberg.com/2017/01/list-of-time-zones-consumed-by-azure/).
 
+* `uefi` - (Optional) A `uefi` block as defined below. Changing this forces a new resource to be created.
+
 * `upgrade_mode` - (Optional) Specifies how Upgrades (e.g. changing the Image/SKU) should be performed to Virtual Machine Instances. Possible values are `Automatic`, `Manual` and `Rolling`. Defaults to `Manual`.
 
 * `winrm_listener` - (Optional) One or more `winrm_listener` blocks as defined below.
@@ -481,6 +483,14 @@ A `winrm_listener` block supports the following:
 * `sku` - (Optional) Specifies the SKU of the image used to create the virtual machines.
 
 * `version` - (Optional) Specifies the version of the image used to create the virtual machines.
+
+---
+
+`uefi` supports the following:
+
+* `secure_boot_enabled` - (Optional) Specifies whether secure boot should be enabled on the virtual machine. Defaults to `false`.
+
+* `v_tpm_enabled` - (Optional) Specifies whether vTPM should be enabled on the virtual machine. Defaults to `false`.
 
 ## Attributes Reference
 

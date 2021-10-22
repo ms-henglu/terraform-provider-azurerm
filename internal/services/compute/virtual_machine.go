@@ -358,3 +358,37 @@ func flattenVirtualMachineOSDisk(ctx context.Context, disksClient *compute.Disks
 		},
 	}, nil
 }
+
+func expandVirtualMachineUefiSettings(input []interface{}) *compute.UefiSettings {
+	if len(input) == 0 || input[0] == nil {
+		return nil
+	}
+	value := input[0].(map[string]interface{})
+	return &compute.UefiSettings{
+		SecureBootEnabled: utils.Bool(value["secure_boot_enabled"].(bool)),
+		VTpmEnabled:       utils.Bool(value["v_tpm_enabled"].(bool)),
+	}
+}
+
+func flattenVirtualMachineUefiSettings(input *compute.UefiSettings) []interface{} {
+	if input == nil {
+		return []interface{}{}
+	}
+
+	secureBootEnabled := false
+	if input.SecureBootEnabled != nil {
+		secureBootEnabled = *input.SecureBootEnabled
+	}
+
+	vTpmEnabled := false
+	if input.VTpmEnabled != nil {
+		vTpmEnabled = *input.VTpmEnabled
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"secure_boot_enabled": secureBootEnabled,
+			"v_tpm_enabled":       vTpmEnabled,
+		},
+	}
+}

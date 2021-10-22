@@ -178,6 +178,8 @@ The following arguments are supported:
 
 * `tags` - (Optional) A mapping of tags which should be assigned to this Virtual Machine.
 
+* `uefi` - (Optional) A `uefi` block as defined below. Changing this forces a new resource to be created.
+
 * `virtual_machine_scale_set_id` - (Optional) Specifies the Orchestrated Virtual Machine Scale Set that this Virtual Machine should be created within. Changing this forces a new resource to be created.
 
 ~> **NOTE:** Orchestrated Virtual Machine Scale Sets can be provisioned using [the `azurerm_orchestrated_virtual_machine_scale_set` resource](/docs/providers/azurerm/r/orchestrated_virtual_machine_scale_set.html).
@@ -285,6 +287,14 @@ A `secret` block supports the following:
 * `sku` - (Optional) Specifies the SKU of the image used to create the virtual machines.
 
 * `version` - (Optional) Specifies the version of the image used to create the virtual machines.
+
+---
+
+`uefi` supports the following:
+
+* `secure_boot_enabled` - (Optional) Specifies whether secure boot should be enabled on the virtual machine. Defaults to `false`.
+
+* `v_tpm_enabled` - (Optional) Specifies whether vTPM should be enabled on the virtual machine. Defaults to `false`.
 
 ## Attributes Reference
 

@@ -171,6 +171,8 @@ The following arguments are supported:
 
 * `timezone` - (Optional) Specifies the Time Zone which should be used by the Virtual Machine, [the possible values are defined here](https://jackstromberg.com/2017/01/list-of-time-zones-consumed-by-azure/).
 
+* `uefi` - (Optional) A `uefi` block as defined below. Changing this forces a new resource to be created.
+
 * `virtual_machine_scale_set_id` - (Optional) Specifies the Orchestrated Virtual Machine Scale Set that this Virtual Machine should be created within. Changing this forces a new resource to be created.
 
 ~> **NOTE:** Orchestrated Virtual Machine Scale Sets can be provisioned using [the `azurerm_orchestrated_virtual_machine_scale_set` resource](/docs/providers/azurerm/r/orchestrated_virtual_machine_scale_set.html).
@@ -288,6 +290,14 @@ A `winrm_listener` block supports the following:
 * `Protocol` - (Required) Specifies Specifies the protocol of listener. Possible values are `Http` or `Https`
 
 * `certificate_url` - (Optional) The Secret URL of a Key Vault Certificate, which must be specified when `protocol` is set to `Https`.
+
+---
+
+`uefi` supports the following:
+
+* `secure_boot_enabled` - (Optional) Specifies whether secure boot should be enabled on the virtual machine. Defaults to `false`.
+
+* `v_tpm_enabled` - (Optional) Specifies whether vTPM should be enabled on the virtual machine. Defaults to `false`.
 
 ## Attributes Reference
 

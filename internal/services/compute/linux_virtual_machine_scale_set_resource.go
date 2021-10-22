@@ -231,6 +231,28 @@ func resourceLinuxVirtualMachineScaleSet() *pluginsdk.Resource {
 
 			"tags": tags.Schema(),
 
+			"uefi": {
+				Type:     pluginsdk.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"secure_boot_enabled": {
+							Type:     pluginsdk.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+
+						"v_tpm_enabled": {
+							Type:     pluginsdk.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
+
 			"upgrade_mode": {
 				Type:     pluginsdk.TypeString,
 				Optional: true,
@@ -457,6 +479,15 @@ func resourceLinuxVirtualMachineScaleSetCreate(d *pluginsdk.ResourceData, meta i
 		virtualMachineProfile.SecurityProfile = &compute.SecurityProfile{
 			EncryptionAtHost: utils.Bool(encryptionAtHostEnabled.(bool)),
 		}
+	}
+
+	uefiSetting := expandVirtualMachineUefiSettings(d.Get("uefi").([]interface{}))
+	if uefiSetting != nil {
+		if virtualMachineProfile.SecurityProfile == nil {
+			virtualMachineProfile.SecurityProfile = &compute.SecurityProfile{}
+		}
+		virtualMachineProfile.SecurityProfile.UefiSettings = uefiSetting
+		virtualMachineProfile.SecurityProfile.SecurityType = compute.SecurityTypesTrustedLaunch
 	}
 
 	// Azure API: "Authentication using either SSH or by user name and password must be enabled in Linux profile."
@@ -785,6 +816,17 @@ func resourceLinuxVirtualMachineScaleSetUpdate(d *pluginsdk.ResourceData, meta i
 		}
 	}
 
+	if d.HasChange("uefi") {
+		if updateProps.VirtualMachineProfile.SecurityProfile == nil {
+			updateProps.VirtualMachineProfile.SecurityProfile = &compute.SecurityProfile{}
+		}
+		uefiSetting := expandVirtualMachineUefiSettings(d.Get("uefi").([]interface{}))
+		if uefiSetting != nil {
+			updateProps.VirtualMachineProfile.SecurityProfile.UefiSettings = uefiSetting
+			updateProps.VirtualMachineProfile.SecurityProfile.SecurityType = compute.SecurityTypesTrustedLaunch
+		}
+	}
+
 	if d.HasChange("automatic_instance_repair") {
 		automaticRepairsPolicyRaw := d.Get("automatic_instance_repair").([]interface{})
 		updateProps.AutomaticRepairsPolicy = ExpandVirtualMachineScaleSetAutomaticRepairsPolicy(automaticRepairsPolicyRaw)
@@ -1041,6 +1083,10 @@ func resourceLinuxVirtualMachineScaleSetRead(d *pluginsdk.ResourceData, meta int
 			encryptionAtHostEnabled = *profile.SecurityProfile.EncryptionAtHost
 		}
 		d.Set("encryption_at_host_enabled", encryptionAtHostEnabled)
+
+		if profile.SecurityProfile != nil {
+			d.Set("uefi", flattenVirtualMachineUefiSettings(profile.SecurityProfile.UefiSettings))
+		}
 	}
 
 	if policy := props.UpgradePolicy; policy != nil {

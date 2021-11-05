@@ -1,0 +1,9 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_management_group" "test" {
+  name         = "acctestmg-211105030230857766"
+  display_name = "accTestMG-211105030230857766"
+}

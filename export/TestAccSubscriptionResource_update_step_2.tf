@@ -1,0 +1,15 @@
+
+provider "azurerm" {
+  features {}
+}
+
+data "azurerm_billing_enrollment_account_scope" "test" {
+  billing_account    = "ARM_BILLING_ACCOUNT"
+  enrollment_account = ""
+}
+
+resource "azurerm_subscription" "test" {
+  alias             = "testAcc-211105030647920944"
+  subscription_name = "testAccSubscription Renamed 211105030647920944"
+  billing_scope_id  = data.azurerm_billing_enrollment_account_scope.test.id
+}

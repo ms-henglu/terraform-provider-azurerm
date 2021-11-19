@@ -1,0 +1,14 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-211119051302184992"
+  location = "West Europe"
+}
+
+resource "azurerm_private_dns_zone" "test" {
+  name                = "acctestzone211119051302184992.com"
+  resource_group_name = azurerm_resource_group.test.name
+}

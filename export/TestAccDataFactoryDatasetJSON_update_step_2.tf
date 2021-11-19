@@ -1,0 +1,64 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-df-211119050737580350"
+  location = "West Europe"
+}
+
+resource "azurerm_data_factory" "test" {
+  name                = "acctestdf211119050737580350"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_data_factory_linked_service_web" "test" {
+  name                = "acctestlsweb211119050737580350"
+  resource_group_name = azurerm_resource_group.test.name
+  data_factory_name   = azurerm_data_factory.test.name
+  authentication_type = "Anonymous"
+  url                 = "http://www.bing.com"
+}
+
+resource "azurerm_data_factory_dataset_json" "test" {
+  name                = "acctestds211119050737580350"
+  resource_group_name = azurerm_resource_group.test.name
+  data_factory_name   = azurerm_data_factory.test.name
+  linked_service_name = azurerm_data_factory_linked_service_web.test.name
+
+  http_server_location {
+    relative_url = "/fizz/buzz/"
+    path         = "foo/bar/"
+    filename     = "foo.json"
+  }
+
+  encoding = "UTF-8"
+
+  description = "test description 2"
+  annotations = ["test1", "test2"]
+  folder      = "testFolder"
+
+  parameters = {
+    foo  = "test1"
+    bar  = "test2"
+    buzz = "test3"
+  }
+
+  additional_properties = {
+    foo = "test1"
+  }
+
+  schema_column {
+    name        = "test1"
+    type        = "Byte"
+    description = "description"
+  }
+
+  schema_column {
+    name        = "test2"
+    type        = "Byte"
+    description = "description"
+  }
+}

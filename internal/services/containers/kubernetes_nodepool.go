@@ -183,6 +183,16 @@ func SchemaDefaultNodePool() *pluginsdk.Schema {
 					}, false),
 				},
 
+
+				"scale_down_mode": {
+					Type:         pluginsdk.TypeString,
+					Optional:     true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(containerservice.ScaleDownModeDeallocate),
+						string(containerservice.ScaleDownModeDelete),
+					}, false),
+				},
+
 				"ultra_ssd_enabled": {
 					Type:     pluginsdk.TypeBool,
 					ForceNew: true,
@@ -221,6 +231,15 @@ func SchemaDefaultNodePool() *pluginsdk.Schema {
 				},
 
 				"upgrade_settings": upgradeSettingsSchema(),
+
+				"workload_runtime": {
+					Type:         pluginsdk.TypeString,
+					Optional:     true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(containerservice.WorkloadRuntimeOCIContainer),
+						string(containerservice.WorkloadRuntimeWasmWasi),
+					}, false),
+				},
 			},
 		},
 	}
@@ -690,6 +709,14 @@ func ExpandDefaultNodePool(d *pluginsdk.ResourceData) (*[]containerservice.Manag
 		profile.OsSKU = containerservice.OSSKU(osSku)
 	}
 
+	if scaleDownMode := raw["scale_down_mode"].(string); scaleDownMode != "" {
+		profile.ScaleDownMode = containerservice.ScaleDownMode(scaleDownMode)
+	}
+
+	if workloadRuntime := raw["workload_runtime"].(string); workloadRuntime != "" {
+		profile.WorkloadRuntime = containerservice.WorkloadRuntime(workloadRuntime)
+	}
+
 	if podSubnetID := raw["pod_subnet_id"].(string); podSubnetID != "" {
 		profile.PodSubnetID = utils.String(podSubnetID)
 	}
@@ -1098,6 +1125,8 @@ func FlattenDefaultNodePool(input *[]containerservice.ManagedClusterAgentPoolPro
 			"only_critical_addons_enabled": criticalAddonsEnabled,
 			"kubelet_config":               flattenAgentPoolKubeletConfig(agentPool.KubeletConfig),
 			"linux_os_config":              linuxOSConfig,
+			"scale_down_mode": string(agentPool.ScaleDownMode),
+			"workload_runtime": string(agentPool.WorkloadRuntime),
 		},
 	}, nil
 }

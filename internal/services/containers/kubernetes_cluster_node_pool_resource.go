@@ -264,6 +264,16 @@ func resourceKubernetesClusterNodePool() *pluginsdk.Resource {
 				ValidateFunc: computeValidate.SpotMaxPrice,
 			},
 
+			"scale_down_mode": {
+				Type:         pluginsdk.TypeString,
+				Optional:     true,
+				Default: string(containerservice.ScaleDownModeDelete),
+				ValidateFunc: validation.StringInSlice([]string{
+					string(containerservice.ScaleDownModeDeallocate),
+					string(containerservice.ScaleDownModeDelete),
+				}, false),
+			},
+
 			"ultra_ssd_enabled": {
 				Type:     pluginsdk.TypeBool,
 				ForceNew: true,
@@ -279,6 +289,15 @@ func resourceKubernetesClusterNodePool() *pluginsdk.Resource {
 			},
 
 			"upgrade_settings": upgradeSettingsSchema(),
+
+			"workload_runtime": {
+				Type:         pluginsdk.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(containerservice.WorkloadRuntimeOCIContainer),
+					string(containerservice.WorkloadRuntimeWasmWasi),
+				}, false),
+			},
 		},
 	}
 }
@@ -370,6 +389,12 @@ func resourceKubernetesClusterNodePoolCreate(d *pluginsdk.ResourceData, meta int
 		profile.OsSKU = containerservice.OSSKU(osSku)
 	}
 
+	if scaleDownMode := d.Get("scale_down_mode").(string); scaleDownMode != "" {
+		profile.ScaleDownMode = containerservice.ScaleDownMode(scaleDownMode)
+	}
+	if workloadRuntime := d.Get("workload_runtime").(string); workloadRuntime != "" {
+		profile.WorkloadRuntime = containerservice.WorkloadRuntime(workloadRuntime)
+	}
 	if priority == string(containerservice.ScaleSetPrioritySpot) {
 		profile.ScaleSetEvictionPolicy = containerservice.ScaleSetEvictionPolicy(evictionPolicy)
 		profile.SpotMaxPrice = utils.Float(spotMaxPrice)
@@ -611,6 +636,12 @@ func resourceKubernetesClusterNodePoolUpdate(d *pluginsdk.ResourceData, meta int
 		upgradeSettingsRaw := d.Get("upgrade_settings").([]interface{})
 		props.UpgradeSettings = expandUpgradeSettings(upgradeSettingsRaw)
 	}
+	if d.HasChange("scale_down_mode") {
+		props.ScaleDownMode =  containerservice.ScaleDownMode(d.Get("scale_down_mode").(string))
+	}
+	if d.HasChange("workload_runtime") {
+		props.WorkloadRuntime =  containerservice.WorkloadRuntime(d.Get("workload_runtime").(string))
+	}
 
 	// validate the auto-scale fields are both set/unset to prevent a continual diff
 	maxCount := 0
@@ -703,6 +734,8 @@ func resourceKubernetesClusterNodePoolRead(d *pluginsdk.ResourceData, meta inter
 		d.Set("fips_enabled", props.EnableFIPS)
 		d.Set("ultra_ssd_enabled", props.EnableUltraSSD)
 		d.Set("kubelet_disk_type", string(props.KubeletDiskType))
+		d.Set("scale_down_mode", string(props.ScaleDownMode))
+		d.Set("workload_runtime", string(props.WorkloadRuntime))
 
 		evictionPolicy := ""
 		if props.ScaleSetEvictionPolicy != "" {

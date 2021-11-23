@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	loganalyticsValidate "github.com/hashicorp/terraform-provider-azurerm/internal/services/loganalytics/validate"
 	"log"
 	"strconv"
 	"strings"
@@ -526,6 +527,10 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 										ValidateFunc:  validation.IntBetween(1, 100),
 										ConflictsWith: []string{"network_profile.0.load_balancer_profile.0.outbound_ip_prefix_ids", "network_profile.0.load_balancer_profile.0.outbound_ip_address_ids"},
 									},
+									"multiple_standard_load_balancers_enabled": {
+										Type:     pluginsdk.TypeBool,
+										Optional: true,
+									},
 									"outbound_ip_prefix_ids": {
 										Type:          pluginsdk.TypeSet,
 										Optional:      true,
@@ -649,6 +654,13 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 				),
 			},
 
+			"public_network_access_enabled": {
+				Type:     pluginsdk.TypeBool,
+				Optional: true,
+				Default: true,
+				ForceNew: true,
+			},
+
 			"role_based_access_control": {
 				Type:     pluginsdk.TypeList,
 				Optional: true,
@@ -736,6 +748,40 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 											"role_based_access_control.0.azure_active_directory.0.server_app_secret", "role_based_access_control.0.azure_active_directory.0.tenant_id",
 											"role_based_access_control.0.azure_active_directory.0.managed", "role_based_access_control.0.azure_active_directory.0.admin_group_object_ids",
 										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
+			"run_command_enabled": {
+				Type:     pluginsdk.TypeBool,
+				Optional: true,
+			},
+
+			"security_profile": {
+				Type:     pluginsdk.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"azure_defender": {
+							Type:     pluginsdk.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Elem: &pluginsdk.Resource{
+								Schema: map[string]*pluginsdk.Schema{
+									"enabled": {
+										Type:     pluginsdk.TypeBool,
+										Optional: true,
+									},
+
+									"log_analytics_workspace_id": {
+										Type:         pluginsdk.TypeString,
+										Optional:     true,
+										ValidateFunc: loganalyticsValidate.LogAnalyticsWorkspaceID,
 									},
 								},
 							},
@@ -1059,6 +1105,8 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 	windowsProfileRaw := d.Get("windows_profile").([]interface{})
 	windowsProfile := expandKubernetesClusterWindowsProfile(windowsProfileRaw)
 
+	securityProfile := expandKubernetesClusterSecurityProfile(d.Get("security_profile").([]interface{}))
+
 	apiServerAuthorizedIPRangesRaw := d.Get("api_server_authorized_ip_ranges").(*pluginsdk.Set).List()
 	apiServerAuthorizedIPRanges := utils.ExpandStringSlice(apiServerAuthorizedIPRangesRaw)
 
@@ -1069,12 +1117,17 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 	if v, ok := d.GetOk("private_cluster_enabled"); ok {
 		enablePrivateCluster = v.(bool)
 	}
+	runCommandEnabled := false
+	if v, ok := d.GetOk("run_command_enabled"); ok {
+		runCommandEnabled = v.(bool)
+	}
 
 	if !enablePrivateCluster && dnsPrefix == "" {
 		return fmt.Errorf("`dns_prefix` should be set if it is not a private cluster")
 	}
 
 	apiAccessProfile := containerservice.ManagedClusterAPIServerAccessProfile{
+		DisableRunCommand:              utils.Bool(!runCommandEnabled),
 		EnablePrivateCluster:           &enablePrivateCluster,
 		AuthorizedIPRanges:             apiServerAuthorizedIPRanges,
 		EnablePrivateClusterPublicFQDN: utils.Bool(d.Get("private_cluster_public_fqdn_enabled").(bool)),
@@ -1089,6 +1142,10 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 	autoScalerProfileRaw := d.Get("auto_scaler_profile").([]interface{})
 	autoScalerProfile := expandKubernetesClusterAutoScalerProfile(autoScalerProfileRaw)
 
+	publicNetworkAccess := containerservice.PublicNetworkAccessEnabled
+	if !d.Get("public_network_access_enabled").(bool) {
+		publicNetworkAccess = containerservice.PublicNetworkAccessDisabled
+	}
 	parameters := containerservice.ManagedCluster{
 		Name:     &name,
 		Location: &location,
@@ -1109,6 +1166,8 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 			WindowsProfile:         windowsProfile,
 			NetworkProfile:         networkProfile,
 			NodeResourceGroup:      utils.String(nodeResourceGroup),
+			SecurityProfile:        securityProfile,
+			PublicNetworkAccess:    publicNetworkAccess,
 			DisableLocalAccounts:   utils.Bool(d.Get("local_account_disabled").(bool)),
 		},
 		Tags: tags.Expand(t),
@@ -1340,9 +1399,14 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		if v, ok := d.GetOk("private_cluster_enabled"); ok {
 			enablePrivateCluster = v.(bool)
 		}
+		runCommandEnabled := false
+		if v, ok := d.GetOk("run_command_enabled"); ok {
+			runCommandEnabled = v.(bool)
+		}
 		existing.ManagedClusterProperties.APIServerAccessProfile = &containerservice.ManagedClusterAPIServerAccessProfile{
 			AuthorizedIPRanges:   utils.ExpandStringSlice(apiServerAuthorizedIPRangesRaw),
 			EnablePrivateCluster: &enablePrivateCluster,
+			DisableRunCommand:    utils.Bool(!runCommandEnabled),
 		}
 		if v, ok := d.GetOk("private_dns_zone_id"); ok {
 			existing.ManagedClusterProperties.APIServerAccessProfile.PrivateDNSZone = utils.String(v.(string))
@@ -1474,6 +1538,13 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		windowsProfileRaw := d.Get("windows_profile").([]interface{})
 		windowsProfile := expandKubernetesClusterWindowsProfile(windowsProfileRaw)
 		existing.ManagedClusterProperties.WindowsProfile = windowsProfile
+	}
+
+	if d.HasChange("security_profile") {
+		updateCluster = true
+		securityProfileRaw := d.Get("security_profile").([]interface{})
+		securityProfile := expandKubernetesClusterSecurityProfile(securityProfileRaw)
+		existing.ManagedClusterProperties.SecurityProfile = securityProfile
 	}
 
 	if d.HasChange("identity") {
@@ -1634,6 +1705,7 @@ func resourceKubernetesClusterRead(d *pluginsdk.ResourceData, meta interface{}) 
 		d.Set("node_resource_group", props.NodeResourceGroup)
 		d.Set("enable_pod_security_policy", props.EnablePodSecurityPolicy)
 		d.Set("local_account_disabled", props.DisableLocalAccounts)
+		d.Set("public_network_access_enabled", props.PublicNetworkAccess == containerservice.PublicNetworkAccessEnabled)
 
 		upgradeChannel := ""
 		if profile := props.AutoUpgradeProfile; profile != nil && profile.UpgradeChannel != containerservice.UpgradeChannelNone {
@@ -1650,6 +1722,9 @@ func resourceKubernetesClusterRead(d *pluginsdk.ResourceData, meta interface{}) 
 
 			d.Set("private_link_enabled", accessProfile.EnablePrivateCluster)
 			d.Set("private_cluster_enabled", accessProfile.EnablePrivateCluster)
+			if accessProfile.DisableRunCommand != nil {
+				d.Set("run_command_enabled", !*accessProfile.DisableRunCommand)
+			}
 			d.Set("private_cluster_public_fqdn_enabled", accessProfile.EnablePrivateClusterPublicFQDN)
 			switch {
 			case accessProfile.PrivateDNSZone != nil && strings.EqualFold("System", *accessProfile.PrivateDNSZone):
@@ -1713,6 +1788,11 @@ func resourceKubernetesClusterRead(d *pluginsdk.ResourceData, meta interface{}) 
 		windowsProfile := flattenKubernetesClusterWindowsProfile(props.WindowsProfile, d)
 		if err := d.Set("windows_profile", windowsProfile); err != nil {
 			return fmt.Errorf("setting `windows_profile`: %+v", err)
+		}
+
+		securityProfile := flattenKubernetesClusterSecurityProfile(props.SecurityProfile, d)
+		if err := d.Set("security_profile", securityProfile); err != nil {
+			return fmt.Errorf("setting `security_profile`: %+v", err)
 		}
 
 		// adminProfile is only available for RBAC enabled clusters with AAD and local account is not disabled
@@ -2067,6 +2147,10 @@ func expandLoadBalancerProfile(d []interface{}) *containerservice.ManagedCluster
 		}
 	}
 
+	if enabled, ok := config["multiple_standard_load_balancers_enabled"]; ok {
+		profile.EnableMultipleStandardLoadBalancers = utils.Bool(enabled.(bool))
+	}
+
 	if ipPrefixes := idsToResourceReferences(config["outbound_ip_prefix_ids"]); ipPrefixes != nil {
 		profile.OutboundIPPrefixes = &containerservice.ManagedClusterLoadBalancerProfileOutboundIPPrefixes{PublicIPPrefixes: ipPrefixes}
 	}
@@ -2182,6 +2266,8 @@ func flattenKubernetesClusterNetworkProfile(profile *containerservice.NetworkPro
 				lb["managed_outbound_ip_count"] = count
 			}
 		}
+
+		lb["multiple_standard_load_balancers_enabled"] = lbp.EnableMultipleStandardLoadBalancers
 
 		if oip := lbp.OutboundIPs; oip != nil {
 			if poip := oip.PublicIPs; poip != nil {
@@ -2756,5 +2842,79 @@ func flattenKubernetesClusterMaintenanceConfigurationTimeInWeeks(input *[]contai
 			"hours": utils.FlattenInt32Slice(item.HourSlots),
 		})
 	}
+	return results
+}
+
+func expandKubernetesClusterSecurityProfile(input []interface{}) *containerservice.ManagedClusterSecurityProfile {
+	if len(input) == 0 {
+		return nil
+	}
+
+	config := input[0].(map[string]interface{})
+
+	if config["azure_defender"] != nil {
+		return nil
+	}
+
+	return &containerservice.ManagedClusterSecurityProfile{
+		AzureDefender: expandKubernetesClusterAzureDefender(config["azure_defender"].([]interface{})),
+	}
+}
+
+func expandKubernetesClusterAzureDefender(input []interface{}) *containerservice.ManagedClusterSecurityProfileAzureDefender {
+	if len(input) == 0 {
+		return nil
+	}
+
+	config := input[0].(map[string]interface{})
+
+	var enabled *bool
+	if v, ok := config["enabled"]; ok {
+		enabled = utils.Bool(v.(bool))
+	}
+
+	var logAnalyticsWorkspaceId *string
+	if v, ok := config["log_analytics_workspace_id"]; ok {
+		logAnalyticsWorkspaceId = utils.String(v.(string))
+	}
+
+	return &containerservice.ManagedClusterSecurityProfileAzureDefender{
+		Enabled:                         enabled,
+		LogAnalyticsWorkspaceResourceID: logAnalyticsWorkspaceId,
+	}
+}
+
+func flattenKubernetesClusterSecurityProfile(input *containerservice.ManagedClusterSecurityProfile, d *pluginsdk.ResourceData) interface{} {
+	results := make([]interface{}, 0)
+	if input == nil {
+		return results
+	}
+
+	results = append(results, map[string]interface{}{
+		"azure_defender": flattenKubernetesClusterAzureDefender(input.AzureDefender),
+	})
+	return results
+}
+
+func flattenKubernetesClusterAzureDefender(input *containerservice.ManagedClusterSecurityProfileAzureDefender) interface{} {
+	results := make([]interface{}, 0)
+	if input == nil {
+		return results
+	}
+
+	var enabled bool
+	if input.Enabled != nil {
+		enabled = *input.Enabled
+	}
+
+	var logAnalyticsWorkspaceId string
+	if input.LogAnalyticsWorkspaceResourceID != nil {
+		logAnalyticsWorkspaceId = *input.LogAnalyticsWorkspaceResourceID
+	}
+
+	results = append(results, map[string]interface{}{
+		"enabled":                    enabled,
+		"log_analytics_workspace_id": logAnalyticsWorkspaceId,
+	})
 	return results
 }

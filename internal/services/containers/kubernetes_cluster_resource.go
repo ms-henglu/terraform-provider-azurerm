@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	loganalyticsValidate "github.com/hashicorp/terraform-provider-azurerm/internal/services/loganalytics/validate"
 	"log"
@@ -1117,20 +1118,17 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 	if v, ok := d.GetOk("private_cluster_enabled"); ok {
 		enablePrivateCluster = v.(bool)
 	}
-	runCommandEnabled := false
-	if v, ok := d.GetOk("run_command_enabled"); ok {
-		runCommandEnabled = v.(bool)
-	}
-
 	if !enablePrivateCluster && dnsPrefix == "" {
 		return fmt.Errorf("`dns_prefix` should be set if it is not a private cluster")
 	}
 
 	apiAccessProfile := containerservice.ManagedClusterAPIServerAccessProfile{
-		DisableRunCommand:              utils.Bool(!runCommandEnabled),
 		EnablePrivateCluster:           &enablePrivateCluster,
 		AuthorizedIPRanges:             apiServerAuthorizedIPRanges,
 		EnablePrivateClusterPublicFQDN: utils.Bool(d.Get("private_cluster_public_fqdn_enabled").(bool)),
+	}
+	if v, ok := d.GetOk("run_command_enabled"); ok {
+		apiAccessProfile.DisableRunCommand = utils.Bool(!v.(bool))
 	}
 
 	nodeResourceGroup := d.Get("node_resource_group").(string)
@@ -1229,6 +1227,8 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 		parameters.ManagedClusterProperties.DiskEncryptionSetID = utils.String(v.(string))
 	}
 
+	j, _ := json.Marshal(parameters)
+	log.Printf("[INFO] body: %s", string(j))
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, parameters)
 	if err != nil {
 		return fmt.Errorf("creating Managed Kubernetes Cluster %q (Resource Group %q): %+v", name, resGroup, err)
@@ -1399,14 +1399,12 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		if v, ok := d.GetOk("private_cluster_enabled"); ok {
 			enablePrivateCluster = v.(bool)
 		}
-		runCommandEnabled := false
-		if v, ok := d.GetOk("run_command_enabled"); ok {
-			runCommandEnabled = v.(bool)
-		}
 		existing.ManagedClusterProperties.APIServerAccessProfile = &containerservice.ManagedClusterAPIServerAccessProfile{
 			AuthorizedIPRanges:   utils.ExpandStringSlice(apiServerAuthorizedIPRangesRaw),
 			EnablePrivateCluster: &enablePrivateCluster,
-			DisableRunCommand:    utils.Bool(!runCommandEnabled),
+		}
+		if v, ok := d.GetOk("run_command_enabled"); ok {
+			existing.ManagedClusterProperties.APIServerAccessProfile.DisableRunCommand = utils.Bool(!v.(bool))
 		}
 		if v, ok := d.GetOk("private_dns_zone_id"); ok {
 			existing.ManagedClusterProperties.APIServerAccessProfile.PrivateDNSZone = utils.String(v.(string))
@@ -1574,6 +1572,8 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 
 	if updateCluster {
 		log.Printf("[DEBUG] Updating the Kubernetes Cluster %q (Resource Group %q)..", id.ManagedClusterName, id.ResourceGroup)
+		j, _ := json.Marshal(existing)
+		log.Printf("[INFO] body: %s", string(j))
 		future, err := clusterClient.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, existing)
 		if err != nil {
 			return fmt.Errorf("updating Managed Kubernetes Cluster %q (Resource Group %q): %+v", id.ManagedClusterName, id.ResourceGroup, err)
@@ -1599,6 +1599,8 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Upgrading the version of Kubernetes to %q..", kubernetesVersion)
 		existing.ManagedClusterProperties.KubernetesVersion = utils.String(kubernetesVersion)
 
+		j, _ := json.Marshal(existing)
+		log.Printf("[INFO] body: %s", string(j))
 		future, err := clusterClient.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, existing)
 		if err != nil {
 			return fmt.Errorf("updating Managed Kubernetes Cluster %q (Resource Group %q): %+v", id.ManagedClusterName, id.ResourceGroup, err)
@@ -1630,6 +1632,8 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 			}
 		}
 
+		j, _ := json.Marshal(agentProfile)
+		log.Printf("[INFO] body: %s", string(j))
 		agentPool, err := nodePoolsClient.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, nodePoolName, agentProfile)
 		if err != nil {
 			return fmt.Errorf("updating Default Node Pool %q (Resource Group %q): %+v", id.ManagedClusterName, id.ResourceGroup, err)
@@ -2852,7 +2856,7 @@ func expandKubernetesClusterSecurityProfile(input []interface{}) *containerservi
 
 	config := input[0].(map[string]interface{})
 
-	if config["azure_defender"] != nil {
+	if config["azure_defender"] == nil {
 		return nil
 	}
 

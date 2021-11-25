@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -509,6 +510,8 @@ func resourceKubernetesClusterNodePoolCreate(d *pluginsdk.ResourceData, meta int
 		ManagedClusterAgentPoolProfileProperties: &profile,
 	}
 
+	j, _ := json.Marshal(parameters)
+	log.Printf("[INFO] body: %s", string(j))
 	future, err := poolsClient.CreateOrUpdate(ctx, resourceGroup, clusterName, name, parameters)
 	if err != nil {
 		return fmt.Errorf("creating/updating Managed Kubernetes Cluster Node Pool %q (Resource Group %q): %+v", name, resourceGroup, err)
@@ -672,6 +675,8 @@ func resourceKubernetesClusterNodePoolUpdate(d *pluginsdk.ResourceData, meta int
 
 	log.Printf("[DEBUG] Updating existing Node Pool %q (Kubernetes Cluster %q / Resource Group %q)..", id.AgentPoolName, id.ManagedClusterName, id.ResourceGroup)
 	existing.ManagedClusterAgentPoolProfileProperties = props
+	j, _ := json.Marshal(existing)
+	log.Printf("[INFO] body: %s", string(j))
 	future, err := client.CreateOrUpdate(ctx, id.ResourceGroup, id.ManagedClusterName, id.AgentPoolName, existing)
 	if err != nil {
 		return fmt.Errorf("updating Node Pool %q (Kubernetes Cluster %q / Resource Group %q): %+v", id.AgentPoolName, id.ManagedClusterName, id.ResourceGroup, err)

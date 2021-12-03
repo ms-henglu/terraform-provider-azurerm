@@ -1,0 +1,24 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-storage-211203014531881353"
+  location = "West Europe"
+}
+
+resource "azurerm_storage_account" "test" {
+  name                = "unlikely23exst2acctfp83f"
+  resource_group_name = azurerm_resource_group.test.name
+
+  location                 = azurerm_resource_group.test.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  allow_blob_public_access = false
+
+  tags = {
+    environment = "production"
+  }
+}

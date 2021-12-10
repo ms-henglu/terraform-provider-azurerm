@@ -1,0 +1,36 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-datashare-211210024527925514"
+  location = "West Europe"
+}
+
+resource "azurerm_data_share_account" "test" {
+  name                = "acctest-dsa-211210024527925514"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = {
+    env = "Test"
+  }
+}
+
+
+resource "azurerm_data_share" "test" {
+  name       = "acctest_ds_211210024527925514"
+  account_id = azurerm_data_share_account.test.id
+  kind       = "CopyBased"
+
+  snapshot_schedule {
+    name       = "acctest-ss2-211210024527925514"
+    recurrence = "Hour"
+    start_time = "2021-12-10T10:45:27Z"
+  }
+}

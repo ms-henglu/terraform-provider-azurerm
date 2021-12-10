@@ -1,0 +1,9 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-211210025007609632"
+  location = "West Europe"
+}

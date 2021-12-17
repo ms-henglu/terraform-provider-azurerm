@@ -1,0 +1,38 @@
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-211217035849135991"
+  location = "West Europe"
+}
+
+resource "azurerm_servicebus_namespace" "test" {
+  name                = "acctestservicebusnamespace-211217035849135991"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "Standard"
+}
+
+resource "azurerm_servicebus_topic" "test" {
+  name                = "acctestservicebustopic-211217035849135991"
+  namespace_name      = "${azurerm_servicebus_namespace.test.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_servicebus_subscription" "test" {
+  name                = "_acctestservicebussubscription-211217035849135991_"
+  namespace_name      = "${azurerm_servicebus_namespace.test.name}"
+  topic_name          = "${azurerm_servicebus_topic.test.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  max_delivery_count  = 10
+	forward_dead_lettered_messages_to = "${azurerm_servicebus_topic.forward_dl_messages_to.name}"
+
+}
+
+
+
+resource "azurerm_servicebus_topic" "forward_dl_messages_to" {
+  name                = "acctestservicebustopic-forward_dl_messages_to-211217035849135991"
+  namespace_name      = "${azurerm_servicebus_namespace.test.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+

@@ -1,0 +1,15 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-211217075027311857"
+  location = "West Europe"
+}
+
+resource "azurerm_shared_image_gallery" "test" {
+  name                = "acctestsig211217075027311857"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}

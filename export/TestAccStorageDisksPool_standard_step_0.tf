@@ -1,0 +1,44 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-diskspool-211217075936148879"
+  location = "West Europe"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctest-vnet-211217075936148879"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  address_space       = ["10.0.0.0/16"]
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctest-subnet-211217075936148879"
+  resource_group_name  = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefixes     = ["10.0.0.0/24"]
+  delegation {
+    name = "diskspool"
+    service_delegation {
+      actions = ["Microsoft.Network/virtualNetworks/read"]
+      name    = "Microsoft.StoragePool/diskPools"
+    }
+  }
+}
+
+
+resource "azurerm_storage_disks_pool" "test" {
+  name                = "acctest-diskspool-s7qhm"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  availability_zones  = ["1"]
+  sku_name            = "Standard_S1"
+  subnet_id           = azurerm_subnet.test.id
+  tags = {
+    foo = "bar"
+  }
+}

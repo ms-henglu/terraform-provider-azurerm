@@ -1,0 +1,22 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-211217075233890696"
+  location = "West Europe"
+}
+
+resource "azurerm_dns_zone" "test" {
+  name                = "acctestzone211217075233890696.com"
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_dns_cname_record" "test" {
+  name                = "myarecord211217075233890696"
+  resource_group_name = azurerm_resource_group.test.name
+  zone_name           = azurerm_dns_zone.test.name
+  ttl                 = 300
+  record              = "contoso.com"
+}

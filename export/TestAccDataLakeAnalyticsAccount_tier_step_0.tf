@@ -1,0 +1,27 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-datalake-220107063920541863"
+  location = "West Europe"
+}
+
+resource "azurerm_data_lake_store" "test" {
+  name                = "acctest010706392054186"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}
+
+
+resource "azurerm_data_lake_analytics_account" "test" {
+  name                = "acctest010706392054186"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  tier = "Commitment_100AUHours"
+
+  default_store_account_name = azurerm_data_lake_store.test.name
+}

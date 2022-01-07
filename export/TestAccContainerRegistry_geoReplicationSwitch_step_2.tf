@@ -1,0 +1,22 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-acr-220107033711174034"
+  location = "West Europe"
+}
+
+resource "azurerm_container_registry" "test" {
+  name                = "testacccr220107033711174034"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Premium"
+  georeplications {
+    location = "westus2"
+  }
+  georeplications {
+    location = "eastus2"
+  }
+}

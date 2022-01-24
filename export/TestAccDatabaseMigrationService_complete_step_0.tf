@@ -1,0 +1,36 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-dbms-220124121929385839"
+  location = "West Europe"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctestVnet-dbms-220124121929385839"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctestSubnet-dbms-220124121929385839"
+  resource_group_name  = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefix       = "10.0.1.0/24"
+}
+
+
+resource "azurerm_database_migration_service" "test" {
+  name                = "acctestDbms-220124121929385839"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  subnet_id           = azurerm_subnet.test.id
+  sku_name            = "Standard_1vCores"
+  tags = {
+    name = "test"
+  }
+}

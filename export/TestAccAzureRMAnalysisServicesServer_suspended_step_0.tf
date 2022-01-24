@@ -1,0 +1,16 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-analysis-220124121706500268"
+  location = "West Europe"
+}
+
+resource "azurerm_analysis_services_server" "test" {
+  name                = "acctestass220124121706500268"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  sku                 = "B1"
+}

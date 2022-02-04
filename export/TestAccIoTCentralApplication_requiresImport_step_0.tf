@@ -1,0 +1,17 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220204060145570812"
+  location = "West Europe"
+}
+
+resource "azurerm_iotcentral_application" "test" {
+  name                = "acctest-iotcentralapp-220204060145570812"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  sub_domain          = "subdomain-220204060145570812"
+  sku                 = "ST1"
+}

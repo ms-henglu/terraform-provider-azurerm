@@ -1,0 +1,33 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220211131004310970"
+  location = "West Europe"
+}
+
+resource "azurerm_route_table" "test" {
+  name                = "acctestrt220211131004310970"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_route" "test" {
+  name                = "acctestroute220211131004310970"
+  resource_group_name = azurerm_resource_group.test.name
+  route_table_name    = azurerm_route_table.test.name
+
+  address_prefix = "10.1.0.0/16"
+  next_hop_type  = "vnetlocal"
+}
+
+resource "azurerm_route" "test1" {
+  name                = "acctestroute2202111310043109701"
+  resource_group_name = azurerm_resource_group.test.name
+  route_table_name    = azurerm_route_table.test.name
+
+  address_prefix = "10.2.0.0/16"
+  next_hop_type  = "none"
+}

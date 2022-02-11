@@ -1,0 +1,19 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220211043621691990"
+  location = "West Europe"
+}
+
+resource "azurerm_eventgrid_domain" "test" {
+  name                = "acctesteg-220211043621691990"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  tags = {
+    "foo" = "bar"
+  }
+}

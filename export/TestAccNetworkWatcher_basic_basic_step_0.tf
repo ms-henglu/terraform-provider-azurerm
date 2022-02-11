@@ -1,0 +1,15 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-watcher-220211044031895829"
+  location = "West Europe"
+}
+
+resource "azurerm_network_watcher" "test" {
+  name                = "acctestNW-220211044031895829"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}

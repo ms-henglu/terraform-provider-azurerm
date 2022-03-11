@@ -1,0 +1,83 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-netapp-220311032907470393"
+  location = "East US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctest-VirtualNetwork-220311032907470393"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  address_space       = ["10.6.0.0/16"]
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctest-Subnet-220311032907470393"
+  resource_group_name  = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefix       = "10.6.2.0/24"
+
+  delegation {
+    name = "testdelegation"
+
+    service_delegation {
+      name    = "Microsoft.Netapp/volumes"
+      actions = ["Microsoft.Network/networkinterfaces/*", "Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+}
+
+resource "azurerm_netapp_account" "test" {
+  name                = "acctest-NetAppAccount-220311032907470393"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_netapp_pool" "test" {
+  name                = "acctest-NetAppPool-220311032907470393"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  account_name        = azurerm_netapp_account.test.name
+  service_level       = "Standard"
+  size_in_tb          = 4
+}
+
+
+resource "azurerm_netapp_snapshot_policy" "test" {
+  name                = "acctest-NetAppSnapshotPolicy-220311032907470393"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  account_name        = azurerm_netapp_account.test.name
+  enabled             = true
+
+  monthly_schedule {
+    snapshots_to_keep = 1
+    days_of_month     = [15, 30]
+    hour              = 23
+    minute            = 30
+  }
+}
+
+resource "azurerm_netapp_volume" "test" {
+  name                = "acctest-NetAppVolume-WithSnapshotPolicy-220311032907470393"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  account_name        = azurerm_netapp_account.test.name
+  pool_name           = azurerm_netapp_pool.test.name
+  volume_path         = "my-unique-file-path-220311032907470393"
+  service_level       = "Standard"
+  subnet_id           = azurerm_subnet.test.id
+  protocols           = ["NFSv3"]
+  security_style      = "Unix"
+  storage_quota_in_gb = 100
+  throughput_in_mibps = 1.6
+
+  data_protection_snapshot_policy {
+    snapshot_policy_id = azurerm_netapp_snapshot_policy.test.id
+  }
+}

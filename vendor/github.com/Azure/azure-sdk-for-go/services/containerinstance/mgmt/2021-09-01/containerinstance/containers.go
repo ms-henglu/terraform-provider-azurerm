@@ -78,7 +78,7 @@ func (client ContainersClient) AttachPreparer(ctx context.Context, resourceGroup
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -86,7 +86,7 @@ func (client ContainersClient) AttachPreparer(ctx context.Context, resourceGroup
 	preparer := autorest.CreatePreparer(
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/Microsoft.ContainerInstance/containerGroups/{containerGroupName}/containers/{containerName}/attach", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerInstance/containerGroups/{containerGroupName}/containers/{containerName}/attach", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -158,7 +158,7 @@ func (client ContainersClient) ExecuteCommandPreparer(ctx context.Context, resou
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -242,7 +242,7 @@ func (client ContainersClient) ListLogsPreparer(ctx context.Context, resourceGro
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

@@ -18,7 +18,7 @@ import (
 )
 
 // The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/containerinstance/mgmt/2021-03-01/containerinstance"
+const fqdn = "github.com/Azure/azure-sdk-for-go/services/containerinstance/mgmt/2021-09-01/containerinstance"
 
 // AzureFileVolume the properties of the Azure File volume. Azure File shares are mounted as volumes.
 type AzureFileVolume struct {
@@ -523,6 +523,8 @@ type ContainerGroup struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - The resource tags.
 	Tags map[string]*string `json:"tags"`
+	// Zones - The zones for the container group.
+	Zones *[]string `json:"zones,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ContainerGroup.
@@ -539,6 +541,9 @@ func (cg ContainerGroup) MarshalJSON() ([]byte, error) {
 	}
 	if cg.Tags != nil {
 		objectMap["tags"] = cg.Tags
+	}
+	if cg.Zones != nil {
+		objectMap["zones"] = cg.Zones
 	}
 	return json.Marshal(objectMap)
 }
@@ -614,6 +619,15 @@ func (cg *ContainerGroup) UnmarshalJSON(body []byte) error {
 					return err
 				}
 				cg.Tags = tags
+			}
+		case "zones":
+			if v != nil {
+				var zones []string
+				err = json.Unmarshal(*v, &zones)
+				if err != nil {
+					return err
+				}
+				cg.Zones = &zones
 			}
 		}
 	}
@@ -824,12 +838,6 @@ func NewContainerGroupListResultPage(cur ContainerGroupListResult, getNextPage f
 	}
 }
 
-// ContainerGroupNetworkProfile container group network profile information.
-type ContainerGroupNetworkProfile struct {
-	// ID - The identifier for a network profile.
-	ID *string `json:"id,omitempty"`
-}
-
 // ContainerGroupProperties the container group properties
 type ContainerGroupProperties struct {
 	// ProvisioningState - READ-ONLY; The provisioning state of the container group. This only appears in the response.
@@ -854,8 +862,8 @@ type ContainerGroupProperties struct {
 	InstanceView *ContainerGroupPropertiesInstanceView `json:"instanceView,omitempty"`
 	// Diagnostics - The diagnostic information for a container group.
 	Diagnostics *ContainerGroupDiagnostics `json:"diagnostics,omitempty"`
-	// NetworkProfile - The network profile information for a container group.
-	NetworkProfile *ContainerGroupNetworkProfile `json:"networkProfile,omitempty"`
+	// SubnetIds - The subnet resource IDs for a container group.
+	SubnetIds *[]ContainerGroupSubnetID `json:"subnetIds,omitempty"`
 	// DNSConfig - The DNS config information for a container group.
 	DNSConfig *DNSConfiguration `json:"dnsConfig,omitempty"`
 	// Sku - The SKU for a container group. Possible values include: 'ContainerGroupSkuStandard', 'ContainerGroupSkuDedicated'
@@ -890,8 +898,8 @@ func (cg ContainerGroupProperties) MarshalJSON() ([]byte, error) {
 	if cg.Diagnostics != nil {
 		objectMap["diagnostics"] = cg.Diagnostics
 	}
-	if cg.NetworkProfile != nil {
-		objectMap["networkProfile"] = cg.NetworkProfile
+	if cg.SubnetIds != nil {
+		objectMap["subnetIds"] = cg.SubnetIds
 	}
 	if cg.DNSConfig != nil {
 		objectMap["dnsConfig"] = cg.DNSConfig
@@ -1082,6 +1090,14 @@ func (future *ContainerGroupsStartFuture) result(client ContainerGroupsClient) (
 	return
 }
 
+// ContainerGroupSubnetID container group subnet information.
+type ContainerGroupSubnetID struct {
+	// ID - Resource ID of virtual network and subnet.
+	ID *string `json:"id,omitempty"`
+	// Name - Friendly name for the subnet.
+	Name *string `json:"name,omitempty"`
+}
+
 // ContainerHTTPGet the container Http Get settings, for liveness or readiness probe
 type ContainerHTTPGet struct {
 	// Path - The path to probe.
@@ -1091,7 +1107,7 @@ type ContainerHTTPGet struct {
 	// Scheme - The scheme. Possible values include: 'SchemeHTTP', 'SchemeHTTPS'
 	Scheme Scheme `json:"scheme,omitempty"`
 	// HTTPHeaders - The HTTP headers.
-	HTTPHeaders *HTTPHeaders `json:"httpHeaders,omitempty"`
+	HTTPHeaders *[]HTTPHeader `json:"httpHeaders,omitempty"`
 }
 
 // ContainerPort the port exposed on the container instance.
@@ -1280,8 +1296,8 @@ type GpuResource struct {
 	Sku GpuSku `json:"sku,omitempty"`
 }
 
-// HTTPHeaders the HTTP headers.
-type HTTPHeaders struct {
+// HTTPHeader the HTTP header.
+type HTTPHeader struct {
 	// Name - The header name.
 	Name *string `json:"name,omitempty"`
 	// Value - The header value.
@@ -1296,6 +1312,10 @@ type ImageRegistryCredential struct {
 	Username *string `json:"username,omitempty"`
 	// Password - The password for the private registry.
 	Password *string `json:"password,omitempty"`
+	// Identity - The identity for the private registry.
+	Identity *string `json:"identity,omitempty"`
+	// IdentityURL - The identity URL for the private registry.
+	IdentityURL *string `json:"identityUrl,omitempty"`
 }
 
 // InitContainerDefinition the init container definition.
@@ -1434,6 +1454,12 @@ func (ia IPAddress) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// ListString ...
+type ListString struct {
+	autorest.Response `json:"-"`
+	Value             *[]string `json:"value,omitempty"`
+}
+
 // LogAnalytics container group log analytics information.
 type LogAnalytics struct {
 	// WorkspaceID - The workspace id for log analytics
@@ -1445,7 +1471,7 @@ type LogAnalytics struct {
 	// Metadata - Metadata for log analytics.
 	Metadata map[string]*string `json:"metadata"`
 	// WorkspaceResourceID - The workspace resource id for log analytics
-	WorkspaceResourceID map[string]*string `json:"workspaceResourceId"`
+	WorkspaceResourceID *string `json:"workspaceResourceId,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for LogAnalytics.
@@ -1680,6 +1706,8 @@ type Resource struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - The resource tags.
 	Tags map[string]*string `json:"tags"`
+	// Zones - The zones for the container group.
+	Zones *[]string `json:"zones,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Resource.
@@ -1690,6 +1718,9 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	}
 	if r.Tags != nil {
 		objectMap["tags"] = r.Tags
+	}
+	if r.Zones != nil {
+		objectMap["zones"] = r.Zones
 	}
 	return json.Marshal(objectMap)
 }

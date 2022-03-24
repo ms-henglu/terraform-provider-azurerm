@@ -59,8 +59,6 @@ func (client ContainerGroupsClient) CreateOrUpdate(ctx context.Context, resource
 								{Target: "containerGroup.ContainerGroupProperties.Diagnostics.LogAnalytics.WorkspaceKey", Name: validation.Null, Rule: true, Chain: nil},
 							}},
 						}},
-					{Target: "containerGroup.ContainerGroupProperties.NetworkProfile", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "containerGroup.ContainerGroupProperties.NetworkProfile.ID", Name: validation.Null, Rule: true, Chain: nil}}},
 					{Target: "containerGroup.ContainerGroupProperties.DNSConfig", Name: validation.Null, Rule: false,
 						Chain: []validation.Constraint{{Target: "containerGroup.ContainerGroupProperties.DNSConfig.NameServers", Name: validation.Null, Rule: true, Chain: nil}}},
 					{Target: "containerGroup.ContainerGroupProperties.EncryptionProperties", Name: validation.Null, Rule: false,
@@ -95,7 +93,7 @@ func (client ContainerGroupsClient) CreateOrUpdatePreparer(ctx context.Context, 
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -177,7 +175,7 @@ func (client ContainerGroupsClient) DeletePreparer(ctx context.Context, resource
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -265,7 +263,7 @@ func (client ContainerGroupsClient) GetPreparer(ctx context.Context, resourceGro
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -291,6 +289,83 @@ func (client ContainerGroupsClient) GetResponder(resp *http.Response) (result Co
 		resp,
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// GetOutboundNetworkDependenciesEndpoints gets all the network dependencies for this container group to allow complete
+// control of network setting and configuration. For container groups, this will always be an empty list.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// containerGroupName - the name of the container group.
+func (client ContainerGroupsClient) GetOutboundNetworkDependenciesEndpoints(ctx context.Context, resourceGroupName string, containerGroupName string) (result ListString, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ContainerGroupsClient.GetOutboundNetworkDependenciesEndpoints")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	req, err := client.GetOutboundNetworkDependenciesEndpointsPreparer(ctx, resourceGroupName, containerGroupName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerinstance.ContainerGroupsClient", "GetOutboundNetworkDependenciesEndpoints", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetOutboundNetworkDependenciesEndpointsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "containerinstance.ContainerGroupsClient", "GetOutboundNetworkDependenciesEndpoints", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetOutboundNetworkDependenciesEndpointsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerinstance.ContainerGroupsClient", "GetOutboundNetworkDependenciesEndpoints", resp, "Failure responding to request")
+		return
+	}
+
+	return
+}
+
+// GetOutboundNetworkDependenciesEndpointsPreparer prepares the GetOutboundNetworkDependenciesEndpoints request.
+func (client ContainerGroupsClient) GetOutboundNetworkDependenciesEndpointsPreparer(ctx context.Context, resourceGroupName string, containerGroupName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"containerGroupName": autorest.Encode("path", containerGroupName),
+		"resourceGroupName":  autorest.Encode("path", resourceGroupName),
+		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2021-09-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerInstance/containerGroups/{containerGroupName}/outboundNetworkDependenciesEndpoints", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetOutboundNetworkDependenciesEndpointsSender sends the GetOutboundNetworkDependenciesEndpoints request. The method will close the
+// http.Response Body if it receives an error.
+func (client ContainerGroupsClient) GetOutboundNetworkDependenciesEndpointsSender(req *http.Request) (*http.Response, error) {
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
+}
+
+// GetOutboundNetworkDependenciesEndpointsResponder handles the response to the GetOutboundNetworkDependenciesEndpoints request. The method always
+// closes the http.Response Body.
+func (client ContainerGroupsClient) GetOutboundNetworkDependenciesEndpointsResponder(resp *http.Response) (result ListString, err error) {
+	err = autorest.Respond(
+		resp,
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
 	return
@@ -343,7 +418,7 @@ func (client ContainerGroupsClient) ListPreparer(ctx context.Context) (*http.Req
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -461,7 +536,7 @@ func (client ContainerGroupsClient) ListByResourceGroupPreparer(ctx context.Cont
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -568,7 +643,7 @@ func (client ContainerGroupsClient) RestartPreparer(ctx context.Context, resourc
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -646,7 +721,7 @@ func (client ContainerGroupsClient) StartPreparer(ctx context.Context, resourceG
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -731,7 +806,7 @@ func (client ContainerGroupsClient) StopPreparer(ctx context.Context, resourceGr
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -807,7 +882,7 @@ func (client ContainerGroupsClient) UpdatePreparer(ctx context.Context, resource
 		"subscriptionId":     autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2021-03-01"
+	const APIVersion = "2021-09-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

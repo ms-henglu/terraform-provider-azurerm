@@ -1,0 +1,17 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-cognitive-220324160012323205"
+  location = "West Europe"
+}
+
+resource "azurerm_cognitive_account" "test" {
+  name                = "acctestcogacc-220324160012323205"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  kind                = "Face"
+  sku_name            = "S0"
+}

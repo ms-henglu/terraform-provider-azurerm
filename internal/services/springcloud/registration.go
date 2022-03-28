@@ -41,6 +41,7 @@ func (r Registration) SupportedResources() map[string]*pluginsdk.Resource {
 		"azurerm_spring_cloud_app_cosmosdb_association": resourceSpringCloudAppCosmosDBAssociation(),
 		"azurerm_spring_cloud_app_mysql_association":    resourceSpringCloudAppMysqlAssociation(),
 		"azurerm_spring_cloud_app_redis_association":    resourceSpringCloudAppRedisAssociation(),
+		"azurerm_spring_cloud_api_portal":               resourceSpringCloudAPIPortal(),
 		"azurerm_spring_cloud_certificate":              resourceSpringCloudCertificate(),
 		"azurerm_spring_cloud_custom_domain":            resourceSpringCloudCustomDomain(),
 		"azurerm_spring_cloud_java_deployment":          resourceSpringCloudJavaDeployment(),

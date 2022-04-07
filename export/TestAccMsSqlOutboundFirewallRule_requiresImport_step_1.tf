@@ -1,0 +1,34 @@
+
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220407231237150378"
+  location = "West Europe"
+}
+
+resource "azurerm_mssql_server" "test" {
+  name                         = "acctestsqlserver220407231237150378"
+  resource_group_name          = azurerm_resource_group.test.name
+  location                     = azurerm_resource_group.test.location
+  version                      = "12.0"
+  administrator_login          = "msincredible"
+  administrator_login_password = "P@55W0rD!!8mzfb"
+
+  outbound_network_restriction_enabled = true
+}
+
+
+resource "azurerm_mssql_outbound_firewall_rule" "test" {
+  name      = "sql220407231237150378.database.windows.net"
+  server_id = azurerm_mssql_server.test.id
+}
+
+
+resource "azurerm_mssql_outbound_firewall_rule" "import" {
+  name      = azurerm_mssql_outbound_firewall_rule.test.name
+  server_id = azurerm_mssql_outbound_firewall_rule.test.server_id
+}

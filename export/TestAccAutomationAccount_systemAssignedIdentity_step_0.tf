@@ -1,0 +1,20 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-auto-220408050926224788"
+  location = "West Europe"
+}
+
+resource "azurerm_automation_account" "test" {
+  name                = "acctest-220408050926224788"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  sku_name            = "Basic"
+
+  identity {
+    type = "SystemAssigned"
+  }
+}

@@ -1,0 +1,16 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220408051002007359"
+  location = "West Europe"
+}
+
+resource "azurerm_cdn_profile" "test" {
+  name                = "acctestcdnprof220408051002007359"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  sku                 = "Standard_Microsoft"
+}

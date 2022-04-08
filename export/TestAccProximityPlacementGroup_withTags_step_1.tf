@@ -1,0 +1,19 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220408051031993116"
+  location = "West Europe"
+}
+
+resource "azurerm_proximity_placement_group" "test" {
+  name                = "acctestPPG-220408051031993116"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  tags = {
+    environment = "staging"
+  }
+}

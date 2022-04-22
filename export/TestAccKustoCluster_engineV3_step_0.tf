@@ -1,0 +1,21 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220422025328531619"
+  location = "West Europe"
+}
+
+resource "azurerm_kusto_cluster" "test" {
+  name                = "acctestkcqhyby"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  sku {
+    name     = "Dev(No SLA)_Standard_D11_v2"
+    capacity = 1
+  }
+  engine = "V3"
+}

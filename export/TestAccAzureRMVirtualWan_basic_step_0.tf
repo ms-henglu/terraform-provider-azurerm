@@ -1,0 +1,15 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220429065844317673"
+  location = "West Europe"
+}
+
+resource "azurerm_virtual_wan" "test" {
+  name                = "acctestvwan220429065844317673"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}

@@ -50,5 +50,11 @@ func (r Registration) SupportedResources() map[string]*pluginsdk.Resource {
 		"azurerm_spring_cloud_java_deployment":          resourceSpringCloudJavaDeployment(),
 		"azurerm_spring_cloud_service":                  resourceSpringCloudService(),
 		"azurerm_spring_cloud_storage":                  resourceSpringCloudStorage(),
+		"azurerm_spring_cloud_api_portal":               resourceSpringCloudAPIPortal(),
+		"azurerm_spring_cloud_api_portal_custom_domain": resourceSpringCloudAPIPortalCustomDomain(),
+		"azurerm_spring_cloud_build_pack_binding":       resourceSpringCloudBuildPackBinding(),
+		"azurerm_spring_cloud_build_deployment":         resourceSpringCloudBuildDeployment(),
+		"azurerm_spring_cloud_gateway_route_config":     resourceSpringCloudGatewayRouteConfig(),
+		"azurerm_spring_cloud_gateway_custom_domain":    resourceSpringCloudGatewayCustomDomain(),
 	}
 }

@@ -14,11 +14,11 @@ import (
 	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
 
-type SpringCloudGatewayResource struct{}
+type SpringCloudAPIPortalResource struct{}
 
-func TestAccSpringCloudGateway_basic(t *testing.T) {
-	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_gateway", "test")
-	r := SpringCloudGatewayResource{}
+func TestAccSpringCloudAPIPortal_basic(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_api_portal", "test")
+	r := SpringCloudAPIPortalResource{}
 	data.ResourceTest(t, r, []resource.TestStep{
 		{
 			Config: r.basic(data),
@@ -30,9 +30,9 @@ func TestAccSpringCloudGateway_basic(t *testing.T) {
 	})
 }
 
-func TestAccSpringCloudGateway_requiresImport(t *testing.T) {
-	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_gateway", "test")
-	r := SpringCloudGatewayResource{}
+func TestAccSpringCloudAPIPortal_requiresImport(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_api_portal", "test")
+	r := SpringCloudAPIPortalResource{}
 	data.ResourceTest(t, r, []resource.TestStep{
 		{
 			Config: r.basic(data),
@@ -44,9 +44,9 @@ func TestAccSpringCloudGateway_requiresImport(t *testing.T) {
 	})
 }
 
-func TestAccSpringCloudGateway_complete(t *testing.T) {
-	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_gateway", "test")
-	r := SpringCloudGatewayResource{}
+func TestAccSpringCloudAPIPortal_complete(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_api_portal", "test")
+	r := SpringCloudAPIPortalResource{}
 	data.ResourceTest(t, r, []resource.TestStep{
 		{
 			Config: r.complete(data),
@@ -58,9 +58,9 @@ func TestAccSpringCloudGateway_complete(t *testing.T) {
 	})
 }
 
-func TestAccSpringCloudGateway_update(t *testing.T) {
-	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_gateway", "test")
-	r := SpringCloudGatewayResource{}
+func TestAccSpringCloudAPIPortal_update(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_api_portal", "test")
+	r := SpringCloudAPIPortalResource{}
 	data.ResourceTest(t, r, []resource.TestStep{
 		{
 			Config: r.basic(data),
@@ -86,12 +86,12 @@ func TestAccSpringCloudGateway_update(t *testing.T) {
 	})
 }
 
-func (r SpringCloudGatewayResource) Exists(ctx context.Context, client *clients.Client, state *terraform.InstanceState) (*bool, error) {
-	id, err := parse.SpringCloudGatewayID(state.ID)
+func (r SpringCloudAPIPortalResource) Exists(ctx context.Context, client *clients.Client, state *terraform.InstanceState) (*bool, error) {
+	id, err := parse.SpringCloudAPIPortalID(state.ID)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.AppPlatform.GatewayClient.Get(ctx, id.ResourceGroup, id.SpringName, id.GatewayName)
+	resp, err := client.AppPlatform.APIPortalClient.Get(ctx, id.ResourceGroup, id.SpringName, id.ApiPortalName)
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
 			return utils.Bool(false), nil
@@ -101,7 +101,7 @@ func (r SpringCloudGatewayResource) Exists(ctx context.Context, client *clients.
 	return utils.Bool(true), nil
 }
 
-func (r SpringCloudGatewayResource) template(data acceptance.TestData) string {
+func (r SpringCloudAPIPortalResource) template(data acceptance.TestData) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -118,65 +118,50 @@ resource "azurerm_spring_cloud_service" "test" {
   resource_group_name = azurerm_resource_group.test.name
   sku_name            = "E0"
 }
+
+resource "azurerm_spring_cloud_gateway" "test" {
+  name                    = "default"
+  spring_cloud_service_id = azurerm_spring_cloud_service.test.id
+}
 `, data.Locations.Primary, data.RandomInteger)
 }
 
-func (r SpringCloudGatewayResource) basic(data acceptance.TestData) string {
+func (r SpringCloudAPIPortalResource) basic(data acceptance.TestData) string {
 	template := r.template(data)
 	return fmt.Sprintf(`
 %s
 
-resource "azurerm_spring_cloud_gateway" "test" {
+resource "azurerm_spring_cloud_api_portal" "test" {
   name                    = "default"
   spring_cloud_service_id = azurerm_spring_cloud_service.test.id
 }
 `, template)
 }
 
-func (r SpringCloudGatewayResource) requiresImport(data acceptance.TestData) string {
+func (r SpringCloudAPIPortalResource) requiresImport(data acceptance.TestData) string {
 	config := r.basic(data)
 	return fmt.Sprintf(`
 %s
 
-resource "azurerm_spring_cloud_gateway" "import" {
-  name                    = azurerm_spring_cloud_gateway.test.name
-  spring_cloud_service_id = azurerm_spring_cloud_gateway.test.spring_cloud_service_id
+resource "azurerm_spring_cloud_api_portal" "import" {
+  name                    = azurerm_spring_cloud_api_portal.test.name
+  spring_cloud_service_id = azurerm_spring_cloud_api_portal.test.spring_cloud_service_id
 }
 `, config)
 }
 
-func (r SpringCloudGatewayResource) complete(data acceptance.TestData) string {
+func (r SpringCloudAPIPortalResource) complete(data acceptance.TestData) string {
 	template := r.template(data)
 	return fmt.Sprintf(`
 %s
 
-resource "azurerm_spring_cloud_gateway" "test" {
-  name                    = "default"
-  spring_cloud_service_id = azurerm_spring_cloud_service.test.id
-  api_metadata {
-    description       = "test description"
-    documentation_url = "https://www.test.com/docs"
-    server_url        = "https://www.test.com"
-    title             = "test title"
-    version           = "1.0"
-  }
-
-  cors {
-    credentials_allowed = false
-    allowed_headers     = ["*"]
-    allowed_methods     = ["PUT"]
-    allowed_origins     = ["test.com"]
-    exposed_headers     = ["x-test-header"]
-    max_age_seconds     = 86400
-  }
+resource "azurerm_spring_cloud_api_portal" "test" {
+  name                          = "default"
+  spring_cloud_service_id       = azurerm_spring_cloud_service.test.id
+  gateway_ids                   = [azurerm_spring_cloud_gateway.test.id]
   https_only                    = false
   public_network_access_enabled = true
-  quota {
-    cpu    = "1"
-    memory = "2Gi"
-  }
-
-  instance_count = 2
+  instance_count                = 2
 }
 `, template)
 }

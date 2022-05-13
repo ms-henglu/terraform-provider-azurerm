@@ -61,11 +61,11 @@ func resourceSpringCloudGatewayCustomDomainCreateUpdate(d *pluginsdk.ResourceDat
 	ctx, cancel := timeouts.ForCreateUpdate(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	portalId, err := parse.SpringCloudAPIPortalID(d.Get("spring_cloud_gateway_id").(string))
+	gatewayId, err := parse.SpringCloudGatewayID(d.Get("spring_cloud_gateway_id").(string))
 	if err != nil {
 		return err
 	}
-	id := parse.NewSpringCloudGatewayCustomDomainID(subscriptionId, portalId.ResourceGroup, portalId.SpringName, portalId.ApiPortalName, d.Get("name").(string))
+	id := parse.NewSpringCloudGatewayCustomDomainID(subscriptionId, gatewayId.ResourceGroup, gatewayId.SpringName, gatewayId.GatewayName, d.Get("name").(string))
 
 	if d.IsNewResource() {
 		existing, err := client.Get(ctx, id.ResourceGroup, id.SpringName, id.GatewayName, id.DomainName)

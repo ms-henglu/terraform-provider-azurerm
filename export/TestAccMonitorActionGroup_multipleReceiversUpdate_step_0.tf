@@ -1,0 +1,15 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220513023535010777"
+  location = "West Europe"
+}
+
+resource "azurerm_monitor_action_group" "test" {
+  name                = "acctestActionGroup-220513023535010777"
+  resource_group_name = azurerm_resource_group.test.name
+  short_name          = "acctestag"
+}

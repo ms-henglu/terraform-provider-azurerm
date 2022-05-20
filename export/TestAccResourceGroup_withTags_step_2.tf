@@ -1,0 +1,13 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220520041119977101"
+  location = "West Europe"
+
+  tags = {
+    environment = "staging"
+  }
+}

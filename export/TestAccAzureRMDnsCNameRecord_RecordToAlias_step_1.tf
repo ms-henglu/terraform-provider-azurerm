@@ -1,0 +1,30 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220520040640798887"
+  location = "West Europe"
+}
+
+resource "azurerm_dns_zone" "test" {
+  name                = "acctestzone220520040640798887.com"
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_dns_cname_record" "target2" {
+  name                = "mycnametarget2205200406407988872"
+  resource_group_name = azurerm_resource_group.test.name
+  zone_name           = azurerm_dns_zone.test.name
+  ttl                 = 300
+  record              = "contoso.co.uk"
+}
+
+resource "azurerm_dns_cname_record" "test" {
+  name                = "mycnamerecord220520040640798887"
+  resource_group_name = azurerm_resource_group.test.name
+  zone_name           = azurerm_dns_zone.test.name
+  ttl                 = 300
+  target_resource_id  = azurerm_dns_cname_record.target2.id
+}

@@ -1,0 +1,21 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220603005106513394"
+  location = "West Europe"
+}
+
+resource "azurerm_monitor_action_group" "test" {
+  name                = "acctestActionGroup-220603005106513394"
+  resource_group_name = azurerm_resource_group.test.name
+  short_name          = "acctestag"
+
+  email_receiver {
+    name                    = "sendtoadmin"
+    email_address           = "admin@contoso.com"
+    use_common_alert_schema = false
+  }
+}

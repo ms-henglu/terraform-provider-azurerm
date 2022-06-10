@@ -1,0 +1,46 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-vdesktop-220610022505044963"
+  location = "West US 2"
+}
+
+resource "azurerm_virtual_desktop_workspace" "test" {
+  name                = "acctestWS22061063"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_virtual_desktop_host_pool" "test" {
+  name                 = "acctestHPPooled22061063"
+  location             = azurerm_resource_group.test.location
+  resource_group_name  = azurerm_resource_group.test.name
+  validate_environment = true
+  type                 = "Pooled"
+  load_balancer_type   = "BreadthFirst"
+}
+
+resource "azurerm_virtual_desktop_application_group" "test" {
+  name                = "acctestAG22061063"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  friendly_name       = "TestAppGroup"
+  description         = "Acceptance Test: An application group"
+  type                = "Desktop"
+  host_pool_id        = azurerm_virtual_desktop_host_pool.test.id
+}
+
+resource "azurerm_virtual_desktop_workspace_application_group_association" "test" {
+  workspace_id         = azurerm_virtual_desktop_workspace.test.id
+  application_group_id = azurerm_virtual_desktop_application_group.test.id
+}
+
+
+resource "azurerm_virtual_desktop_workspace_application_group_association" "import" {
+  workspace_id         = azurerm_virtual_desktop_workspace_application_group_association.test.workspace_id
+  application_group_id = azurerm_virtual_desktop_workspace_application_group_association.test.application_group_id
+}

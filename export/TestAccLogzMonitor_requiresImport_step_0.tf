@@ -1,0 +1,30 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctest-logz-220610022754973507"
+  location = "West Europe"
+}
+
+
+resource "azurerm_logz_monitor" "test" {
+  name                = "liftr_test_only_0610022754973507"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  plan {
+    billing_cycle  = "MONTHLY"
+    effective_date = "2022-06-10T09:27:54Z"
+    plan_id        = "100gb14days"
+    usage_type     = "COMMITTED"
+  }
+
+  user {
+    email        = "d61226fd-c136-498f-8ec0-91bc79a81453@example.com"
+    first_name   = "first"
+    last_name    = "last"
+    phone_number = "123456"
+  }
+}

@@ -1,0 +1,25 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220623223405139411"
+  location = "West Europe"
+}
+
+resource "azurerm_storage_account" "test" {
+  name                     = "acctestegst220623223411"
+  resource_group_name      = azurerm_resource_group.test.name
+  location                 = azurerm_resource_group.test.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_eventgrid_system_topic" "test" {
+  name                   = "acctestEGST220623223405139411"
+  location               = azurerm_resource_group.test.location
+  resource_group_name    = azurerm_resource_group.test.name
+  source_arm_resource_id = azurerm_storage_account.test.id
+  topic_type             = "Microsoft.Storage.StorageAccounts"
+}

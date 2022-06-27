@@ -1,0 +1,21 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220627122622905954"
+  location = "West Europe"
+}
+
+resource "azurerm_dev_test_lab" "test" {
+  name                = "acctestdtl220627122622905954"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_dev_test_virtual_network" "test" {
+  name                = "acctestdtvn220627122622905954"
+  lab_name            = azurerm_dev_test_lab.test.name
+  resource_group_name = azurerm_resource_group.test.name
+}

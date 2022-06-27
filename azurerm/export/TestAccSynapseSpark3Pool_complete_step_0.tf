@@ -1,0 +1,66 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-synapse-220627123129244333"
+  location = "West Europe"
+}
+
+resource "azurerm_storage_account" "test" {
+  name                     = "acctestaccmd3bs"
+  resource_group_name      = azurerm_resource_group.test.name
+  location                 = azurerm_resource_group.test.location
+  account_kind             = "BlobStorage"
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_storage_data_lake_gen2_filesystem" "test" {
+  name               = "acctest-220627123129244333"
+  storage_account_id = azurerm_storage_account.test.id
+}
+
+resource "azurerm_synapse_workspace" "test" {
+  name                                 = "acctestsw220627123129244333"
+  resource_group_name                  = azurerm_resource_group.test.name
+  location                             = azurerm_resource_group.test.location
+  storage_data_lake_gen2_filesystem_id = azurerm_storage_data_lake_gen2_filesystem.test.id
+  sql_administrator_login              = "sqladminuser"
+  sql_administrator_login_password     = "H@Sh1CoR3!"
+}
+
+
+resource "azurerm_synapse_spark_pool" "test" {
+  name                 = "acctestSSPmd3bs"
+  synapse_workspace_id = azurerm_synapse_workspace.test.id
+  node_size_family     = "MemoryOptimized"
+  node_size            = "Medium"
+
+  auto_pause {
+    delay_in_minutes = 15
+  }
+
+  auto_scale {
+    max_node_count = 50
+    min_node_count = 3
+  }
+
+  library_requirement {
+    content  = <<EOF
+appnope==0.1.0
+beautifulsoup4==4.6.3
+EOF
+    filename = "requirements.txt"
+  }
+
+  spark_log_folder    = "/logs"
+  spark_events_folder = "/events"
+  spark_version       = "3.0"
+
+  tags = {
+    ENV = "Test"
+  }
+}

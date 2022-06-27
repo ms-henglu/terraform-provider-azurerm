@@ -1,0 +1,69 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-df-220627125805900691"
+  location = "West Europe"
+}
+
+resource "azurerm_data_factory" "test" {
+  name                = "acctestdf220627125805900691"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_data_factory_linked_service_web" "test" {
+  name                = "acctestlsweb220627125805900691"
+  resource_group_name = azurerm_resource_group.test.name
+  data_factory_name   = azurerm_data_factory.test.name
+  authentication_type = "Anonymous"
+  url                 = "http://www.bing.com"
+}
+
+resource "azurerm_data_factory_dataset_delimited_text" "test" {
+  name                = "acctestds220627125805900691"
+  resource_group_name = azurerm_resource_group.test.name
+  data_factory_name   = azurerm_data_factory.test.name
+  linked_service_name = azurerm_data_factory_linked_service_web.test.name
+
+  http_server_location {
+    relative_url = "/fizz/buzz/"
+    path         = "foo/bar/"
+    filename     = "foo.txt"
+  }
+
+  column_delimiter    = ","
+  row_delimiter       = "NEW"
+  encoding            = "UTF-8"
+  quote_character     = "x"
+  escape_character    = "f"
+  first_row_as_header = true
+  null_value          = "NULL"
+
+  description = "test description"
+  annotations = ["test1", "test2", "test3"]
+
+  folder = "testFolder"
+
+  compression_codec = "gzip"
+
+  compression_level = "Optimal"
+
+  parameters = {
+    foo = "test1"
+    bar = "test2"
+  }
+
+  additional_properties = {
+    foo = "test1"
+    bar = "test2"
+  }
+
+  schema_column {
+    name        = "test1"
+    type        = "Byte"
+    description = "description"
+  }
+}

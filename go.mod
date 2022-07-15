@@ -52,7 +52,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/hc-install v0.4.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
-	github.com/hashicorp/hcl2 v0.0.0-20191002203319-fb75b3253c80 // indirect
+	github.com/hashicorp/hcl2 v0.0.0-20191002203319-fb75b3253c80
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform-exec v0.17.2 // indirect
 	github.com/hashicorp/terraform-json v0.14.0 // indirect

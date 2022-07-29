@@ -1,0 +1,17 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-maint-220729032941958179"
+  location = "West Europe"
+}
+
+resource "azurerm_maintenance_configuration" "test" {
+  name                = "acctest-MC220729032941958179"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  scope               = "All"
+  visibility          = "Custom"
+}

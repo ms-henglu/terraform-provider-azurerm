@@ -1,0 +1,32 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-eg-220811053245625283"
+  location = "West Europe"
+}
+
+resource "azurerm_eventhub_namespace" "test" {
+  name                = "acctesteventhubnamespace-220811053245625283"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  sku                 = "Basic"
+}
+
+resource "azurerm_eventhub" "test" {
+  name                = "acctesteventhub-220811053245625283"
+  namespace_name      = azurerm_eventhub_namespace.test.name
+  resource_group_name = azurerm_resource_group.test.name
+  partition_count     = 2
+  message_retention   = 1
+}
+
+resource "azurerm_eventgrid_event_subscription" "test" {
+  name                  = "acctest-eg-220811053245625283"
+  scope                 = azurerm_resource_group.test.id
+  event_delivery_schema = "CloudEventSchemaV1_0"
+
+  eventhub_endpoint_id = azurerm_eventhub.test.id
+}

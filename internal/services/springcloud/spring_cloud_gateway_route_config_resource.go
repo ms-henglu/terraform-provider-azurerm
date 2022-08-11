@@ -223,7 +223,7 @@ func expandGatewayRouteConfigGatewayAPIRouteArray(input []interface{}) *[]apppla
 	results := make([]appplatform.GatewayAPIRoute, 0)
 	for _, item := range input {
 		v := item.(map[string]interface{})
-		results = append(results, appplatform.GatewayAPIRoute{
+		route := appplatform.GatewayAPIRoute{
 			Title:       utils.String(v["title"].(string)),
 			Description: utils.String(v["description"].(string)),
 			URI:         utils.String(v["uri"].(string)),
@@ -231,9 +231,12 @@ func expandGatewayRouteConfigGatewayAPIRouteArray(input []interface{}) *[]apppla
 			TokenRelay:  utils.Bool(v["token_relay"].(bool)),
 			Predicates:  utils.ExpandStringSlice(v["predicates"].(*pluginsdk.Set).List()),
 			Filters:     utils.ExpandStringSlice(v["filters"].(*pluginsdk.Set).List()),
-			Order:       utils.Int32(int32(v["order"].(int))),
 			Tags:        utils.ExpandStringSlice(v["classification_tags"].(*pluginsdk.Set).List()),
-		})
+		}
+		if order, ok := v["order"]; ok {
+			route.Order = utils.Int32(int32(order.(int)))
+		}
+		results = append(results, route)
 	}
 	return &results
 }

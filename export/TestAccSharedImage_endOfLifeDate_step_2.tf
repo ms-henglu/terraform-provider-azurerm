@@ -1,0 +1,31 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-220819165017105338"
+  location = "West Europe"
+}
+
+resource "azurerm_shared_image_gallery" "test" {
+  name                = "acctestsig220819165017105338"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}
+
+resource "azurerm_shared_image" "test" {
+  name                = "acctestimg220819165017105338"
+  gallery_name        = azurerm_shared_image_gallery.test.name
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  os_type             = "Linux"
+
+  end_of_life_date = "2022-08-20T12:50:17Z"
+
+  identifier {
+    publisher = "AccTesPublisher220819165017105338"
+    offer     = "AccTesOffer220819165017105338"
+    sku       = "AccTesSku220819165017105338"
+  }
+}

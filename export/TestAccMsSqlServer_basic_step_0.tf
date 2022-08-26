@@ -1,0 +1,20 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-mssql-220826010339119380"
+  location = "West Europe"
+}
+
+resource "azurerm_mssql_server" "test" {
+  name                         = "acctestsqlserver220826010339119380"
+  resource_group_name          = azurerm_resource_group.test.name
+  location                     = azurerm_resource_group.test.location
+  version                      = "12.0"
+  administrator_login          = "missadministrator"
+  administrator_login_password = "thisIsKat11"
+
+  outbound_network_restriction_enabled = true
+}

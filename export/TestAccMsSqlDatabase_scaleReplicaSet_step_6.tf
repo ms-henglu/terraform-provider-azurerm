@@ -1,0 +1,52 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-mssql-220826003043768374"
+  location = "West Europe"
+}
+
+resource "azurerm_mssql_server" "test" {
+  name                         = "acctest-sqlserver-220826003043768374"
+  resource_group_name          = azurerm_resource_group.test.name
+  location                     = azurerm_resource_group.test.location
+  version                      = "12.0"
+  administrator_login          = "mradministrator"
+  administrator_login_password = "thisIsDog11"
+}
+
+
+resource "azurerm_mssql_database" "primary" {
+  name        = "acctest-db-220826003043768374"
+  server_id   = azurerm_mssql_server.test.id
+  sample_name = "AdventureWorksLT"
+
+  max_size_gb = "2"
+  sku_name    = "BC_Gen5_2"
+}
+
+resource "azurerm_resource_group" "secondary" {
+  name     = "acctestRG-mssql2-220826003043768374"
+  location = "West US 2"
+}
+
+resource "azurerm_mssql_server" "secondary" {
+  name                         = "acctest-sqlserver2-220826003043768374"
+  resource_group_name          = azurerm_resource_group.secondary.name
+  location                     = azurerm_resource_group.secondary.location
+  version                      = "12.0"
+  administrator_login          = "mradministrator"
+  administrator_login_password = "thisIsDog12"
+}
+
+resource "azurerm_mssql_database" "secondary" {
+  name                        = "acctest-db-220826003043768374"
+  server_id                   = azurerm_mssql_server.secondary.id
+  create_mode                 = "Secondary"
+  creation_source_database_id = azurerm_mssql_database.primary.id
+
+  sku_name = "BC_Gen5_2"
+}

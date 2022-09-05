@@ -1,0 +1,33 @@
+
+provider "azurerm" {
+  features {}
+}
+
+data "azurerm_subscription" "primary" {
+}
+
+data "azurerm_client_config" "test" {
+}
+
+resource "azurerm_role_definition" "test" {
+  role_definition_id = "5fc76e94-b39a-4c8c-b254-008945d164c6"
+  name               = "acctestrd-220905045429467578"
+  scope              = data.azurerm_subscription.primary.id
+  description        = "Created by the Role Assignment Acceptance Test"
+
+  permissions {
+    actions     = ["Microsoft.Resources/subscriptions/resourceGroups/read"]
+    not_actions = []
+  }
+
+  assignable_scopes = [
+    data.azurerm_subscription.primary.id,
+  ]
+}
+
+resource "azurerm_role_assignment" "test" {
+  name               = "9816bc09-e1cf-4c65-adc7-5700b1897c38"
+  scope              = data.azurerm_subscription.primary.id
+  role_definition_id = azurerm_role_definition.test.role_definition_resource_id
+  principal_id       = data.azurerm_client_config.test.object_id
+}

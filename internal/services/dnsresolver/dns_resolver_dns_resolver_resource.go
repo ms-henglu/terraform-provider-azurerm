@@ -3,6 +3,9 @@ package dnsresolver
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-azure-helpers/lang/response"
@@ -204,11 +207,35 @@ func (r DNSResolverDnsResolverResource) Delete() sdk.ResourceFunc {
 				return err
 			}
 
-			if err := client.DeleteThenPoll(ctx, *id, dnsresolvers.DeleteOperationOptions{}); err != nil {
-				return fmt.Errorf("deleting %s: %+v", id, err)
+			log.Printf("[DEBUG] Waiting for %s to be ready to be deleted", id)
+			deadline, ok := ctx.Deadline()
+			if !ok {
+				return fmt.Errorf("context had no deadline")
 			}
-
+			stateConf := &pluginsdk.StateChangeConf{
+				Pending:    []string{"Pending"},
+				Target:     []string{"Succeeded"},
+				Refresh:    dnsResolverDeleteRefreshFunc(ctx, client, id),
+				MinTimeout: 1 * time.Minute,
+				Timeout:    time.Until(deadline),
+			}
+			if _, err = stateConf.WaitForStateContext(ctx); err != nil {
+				return fmt.Errorf("waiting for %s to become ready to delete: %+v", id, err)
+			}
 			return nil
 		},
+	}
+}
+
+func dnsResolverDeleteRefreshFunc(ctx context.Context, client *dnsresolvers.DnsResolversClient, id *dnsresolvers.DnsResolverId) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		err := client.DeleteThenPoll(ctx, *id, dnsresolvers.DeleteOperationOptions{})
+		if err != nil {
+			if strings.Contains(err.Error(), "Can not delete resource before nested resources are deleted.") {
+				return "", "Pending", nil
+			}
+			return "", "", err
+		}
+		return "", "Succeeded", nil
 	}
 }

@@ -1,0 +1,15 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-221019060914414179"
+  location = "West Europe"
+}
+
+resource "azurerm_network_ddos_protection_plan" "test" {
+  name                = "acctestddospplan-221019060914414179"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}

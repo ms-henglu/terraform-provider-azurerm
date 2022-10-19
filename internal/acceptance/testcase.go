@@ -18,6 +18,7 @@ import (
 )
 
 func (td TestData) DataSourceTest(t *testing.T, steps []TestStep) {
+	return
 	// DataSources don't need a check destroy - however since this is a wrapper function
 	// and not matching the ignore pattern `XXX_data_source_test.go`, this needs to be explicitly opted out
 
@@ -30,6 +31,7 @@ func (td TestData) DataSourceTest(t *testing.T, steps []TestStep) {
 }
 
 func (td TestData) DataSourceTestInSequence(t *testing.T, steps []TestStep) {
+	return
 	// DataSources don't need a check destroy - however since this is a wrapper function
 	// and not matching the ignore pattern `XXX_data_source_test.go`, this needs to be explicitly opted out
 
@@ -167,6 +169,8 @@ func RunTestsInSequence(t *testing.T, tests map[string]map[string]func(t *testin
 }
 
 func (td TestData) runAcceptanceTest(t *testing.T, testCase resource.TestCase) {
+	td.ExportConfig(t, testCase.Steps)
+	return
 	testCase.ExternalProviders = td.externalProviders()
 	testCase.ProtoV5ProviderFactories = framework.ProtoV5ProviderFactoriesInit(context.Background(), "azurerm")
 
@@ -174,6 +178,8 @@ func (td TestData) runAcceptanceTest(t *testing.T, testCase resource.TestCase) {
 }
 
 func (td TestData) runAcceptanceSequentialTest(t *testing.T, testCase resource.TestCase) {
+	td.ExportConfig(t, testCase.Steps)
+	return
 	testCase.ExternalProviders = td.externalProviders()
 	testCase.ProtoV5ProviderFactories = framework.ProtoV5ProviderFactoriesInit(context.Background(), "azurerm")
 

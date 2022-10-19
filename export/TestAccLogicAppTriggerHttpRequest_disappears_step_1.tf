@@ -1,0 +1,15 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-221019054532724202"
+  location = "West Europe"
+}
+
+resource "azurerm_logic_app_workflow" "test" {
+  name                = "acctestlaw-221019054532724202"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}

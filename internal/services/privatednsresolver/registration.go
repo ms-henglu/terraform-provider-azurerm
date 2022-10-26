@@ -13,7 +13,7 @@ var (
 )
 
 func (r Registration) AssociatedGitHubLabel() string {
-	return "service/private-dns-resolver"
+	return "service/dns-private-resolver"
 }
 
 // Name is the name of this Service
@@ -47,5 +47,10 @@ func (r Registration) DataSources() []sdk.DataSource {
 func (r Registration) Resources() []sdk.Resource {
 	return []sdk.Resource{
 		PrivateDNSResolverDnsResolverResource{},
+		PrivateDNSResolverInboundEndpointResource{},
+		PrivateDNSResolverOutboundEndpointResource{},
+		PrivateDNSResolverDnsForwardingRulesetResource{},
+		PrivateDNSResolverForwardingRuleResource{},
+		PrivateDNSResolverVirtualNetworkLinkResource{},
 	}
 }

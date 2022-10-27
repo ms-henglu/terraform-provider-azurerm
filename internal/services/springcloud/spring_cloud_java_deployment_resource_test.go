@@ -3,12 +3,12 @@ package springcloud_test
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"testing"
 
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance/check"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
@@ -119,17 +119,17 @@ func TestAccSpringCloudJavaDeployment_updateHalfCpuMemory(t *testing.T) {
 }
 
 func (r SpringCloudJavaDeploymentResource) Exists(ctx context.Context, clients *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
-	id, err := parse.SpringCloudDeploymentID(state.ID)
+	id, err := appplatform.ParseDeploymentID(state.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := clients.AppPlatform.DeploymentsClient.Get(ctx, id.ResourceGroup, id.SpringName, id.AppName, id.DeploymentName)
+	resp, err := clients.AppPlatform.AppPlatformClient.DeploymentsGet(ctx, *id)
 	if err != nil {
-		return nil, fmt.Errorf("reading Spring Cloud Deployment %q (Spring Cloud Service %q / App %q / Resource Group %q): %+v", id.DeploymentName, id.SpringName, id.AppName, id.ResourceGroup, err)
+		return nil, fmt.Errorf("reading %q: %+v", id, err)
 	}
 
-	return utils.Bool(resp.Properties != nil), nil
+	return utils.Bool(resp.Model.Properties != nil), nil
 }
 
 func (r SpringCloudJavaDeploymentResource) basic(data acceptance.TestData) string {

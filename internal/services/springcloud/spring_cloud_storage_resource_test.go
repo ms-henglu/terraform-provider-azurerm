@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance/check"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
@@ -46,17 +46,17 @@ func TestAccSpringCloudStorage_requiresImport(t *testing.T) {
 }
 
 func (r SpringCloudStorageResource) Exists(ctx context.Context, clients *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
-	id, err := parse.SpringCloudStorageID(state.ID)
+	id, err := appplatform.ParseStorageIDInsensitively(state.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := clients.AppPlatform.StoragesClient.Get(ctx, id.ResourceGroup, id.SpringName, id.StorageName)
+	resp, err := clients.AppPlatform.AppPlatformClient.StoragesGet(ctx, *id)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read %q: %+v", id, err)
 	}
 
-	return utils.Bool(resp.Properties != nil), nil
+	return utils.Bool(resp.Model.Properties != nil), nil
 }
 
 func (SpringCloudStorageResource) basic(data acceptance.TestData) string {

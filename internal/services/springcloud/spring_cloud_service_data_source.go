@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"github.com/hashicorp/go-azure-helpers/resourcemanager/commonschema"
 	"github.com/hashicorp/go-azure-helpers/resourcemanager/location"
+	"github.com/hashicorp/go-azure-helpers/resourcemanager/tags"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/validate"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/tags"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/timeouts"
-	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
 
 func dataSourceSpringCloudService() *pluginsdk.Resource {
@@ -150,23 +150,22 @@ func dataSourceSpringCloudService() *pluginsdk.Resource {
 				},
 			},
 
-			"tags": tags.SchemaDataSource(),
+			"tags": commonschema.TagsDataSource(),
 		},
 	}
 }
 
 func dataSourceSpringCloudServiceRead(d *pluginsdk.ResourceData, meta interface{}) error {
-	client := meta.(*clients.Client).AppPlatform.ServicesClient
-	configServersClient := meta.(*clients.Client).AppPlatform.ConfigServersClient
+	client := meta.(*clients.Client).AppPlatform.AppPlatformClient
 	subscriptionId := meta.(*clients.Client).Account.SubscriptionId
 	ctx, cancel := timeouts.ForRead(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id := parse.NewSpringCloudServiceID(subscriptionId, d.Get("resource_group_name").(string), d.Get("name").(string))
+	id := appplatform.NewSpringID(subscriptionId, d.Get("resource_group_name").(string), d.Get("name").(string))
 
-	resp, err := client.Get(ctx, id.ResourceGroup, id.SpringName)
+	resp, err := client.ServicesGet(ctx, id)
 	if err != nil {
-		if utils.ResponseWasNotFound(resp.Response) {
+		if response.WasNotFound(resp.HttpResponse) {
 			return fmt.Errorf("%s was not found", id)
 		}
 		return fmt.Errorf("retrieving %s: %+v", id, err)
@@ -174,21 +173,21 @@ func dataSourceSpringCloudServiceRead(d *pluginsdk.ResourceData, meta interface{
 
 	d.SetId(id.ID())
 
-	d.Set("name", id.SpringName)
-	d.Set("resource_group_name", id.ResourceGroup)
-	d.Set("location", location.NormalizeNilable(resp.Location))
+	d.Set("name", id.ServiceName)
+	d.Set("resource_group_name", id.ResourceGroupName)
+	d.Set("location", location.NormalizeNilable(resp.Model.Location))
 
-	if resp.Sku != nil && resp.Sku.Name != nil && *resp.Sku.Name != "E0" {
-		configServer, err := configServersClient.Get(ctx, id.ResourceGroup, id.SpringName)
+	if resp.Model.Sku != nil && resp.Model.Sku.Name != nil && *resp.Model.Sku.Name != "E0" {
+		configServer, err := client.ConfigServersGet(ctx, id)
 		if err != nil {
 			return fmt.Errorf("retrieving config server configuration for %s: %+v", id, err)
 		}
-		if err := d.Set("config_server_git_setting", flattenSpringCloudConfigServerGitProperty(configServer.Properties, d)); err != nil {
+		if err := d.Set("config_server_git_setting", flattenSpringCloudConfigServerGitProperty(configServer.Model.Properties, d)); err != nil {
 			return fmt.Errorf("setting `config_server_git_setting`: %+v", err)
 		}
 	}
 
-	if props := resp.Properties; props != nil {
+	if props := resp.Model.Properties; props != nil {
 		outboundPublicIPAddresses := flattenOutboundPublicIPAddresses(props.NetworkProfile)
 		if err := d.Set("outbound_public_ip_addresses", outboundPublicIPAddresses); err != nil {
 			return fmt.Errorf("setting `outbound_public_ip_addresses`: %+v", err)
@@ -199,5 +198,5 @@ func dataSourceSpringCloudServiceRead(d *pluginsdk.ResourceData, meta interface{
 		}
 	}
 
-	return tags.FlattenAndSet(d, resp.Tags)
+	return tags.FlattenAndSet(d, resp.Model.Tags)
 }

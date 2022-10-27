@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance/check"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	parse "github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
@@ -210,17 +210,17 @@ func TestAccSpringCloudApp_identity(t *testing.T) {
 }
 
 func (r SpringCloudAppResource) Exists(ctx context.Context, clients *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
-	id, err := parse.SpringCloudAppID(state.ID)
+	id, err := appplatform.ParseAppIDInsensitively(state.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := clients.AppPlatform.AppsClient.Get(ctx, id.ResourceGroup, id.SpringName, id.AppName, "")
+	resp, err := clients.AppPlatform.AppPlatformClient.AppsGet(ctx, *id, appplatform.AppsGetOperationOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("reading Spring Cloud App %q (Spring Cloud Service %q / Resource Group %q): %+v", id.AppName, id.SpringName, id.ResourceGroup, err)
+		return nil, fmt.Errorf("reading %q: %+v", id, err)
 	}
 
-	return utils.Bool(resp.Properties != nil), nil
+	return utils.Bool(resp.Model.Properties != nil), nil
 }
 
 func (SpringCloudAppResource) basic(data acceptance.TestData) string {

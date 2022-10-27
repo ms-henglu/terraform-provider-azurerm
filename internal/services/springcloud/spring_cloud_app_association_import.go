@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 )
 
@@ -17,23 +17,23 @@ const (
 
 func importSpringCloudAppAssociation(resourceType string) pluginsdk.ImporterFunc {
 	return func(ctx context.Context, d *pluginsdk.ResourceData, meta interface{}) (data []*pluginsdk.ResourceData, err error) {
-		id, err := parse.SpringCloudAppAssociationID(d.Id())
+		id, err := appplatform.ParseBindingIDInsensitively(d.Id())
 		if err != nil {
 			return []*pluginsdk.ResourceData{}, err
 		}
 
-		client := meta.(*clients.Client).AppPlatform.BindingsClient
-		resp, err := client.Get(ctx, id.ResourceGroup, id.SpringName, id.AppName, id.BindingName)
+		client := meta.(*clients.Client).AppPlatform.AppPlatformClient
+		resp, err := client.BindingsGet(ctx, *id)
 		if err != nil {
 			return []*pluginsdk.ResourceData{}, fmt.Errorf("retrieving %s: %+v", id, err)
 		}
 
-		if resp.Properties == nil || resp.Properties.ResourceType == nil {
+		if resp.Model.Properties == nil || resp.Model.Properties.ResourceType == nil {
 			return []*pluginsdk.ResourceData{}, fmt.Errorf("retrieving %s: `properties` or `properties.resourceType` was nil", id)
 		}
 
-		if *resp.Properties.ResourceType != resourceType {
-			return []*pluginsdk.ResourceData{}, fmt.Errorf(`spring Cloud App Association "type" mismatch, expected "%s", got "%s"`, resourceType, *resp.Properties.ResourceType)
+		if *resp.Model.Properties.ResourceType != resourceType {
+			return []*pluginsdk.ResourceData{}, fmt.Errorf(`spring Cloud App Association "type" mismatch, expected "%s", got "%s"`, resourceType, *resp.Model.Properties.ResourceType)
 		}
 
 		return []*pluginsdk.ResourceData{d}, nil

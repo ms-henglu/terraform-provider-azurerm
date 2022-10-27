@@ -2,10 +2,12 @@ package client
 
 import (
 	"github.com/Azure/azure-sdk-for-go/services/preview/appplatform/mgmt/2022-05-01-preview/appplatform"
+	appplatform2 "github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/common"
 )
 
 type Client struct {
+	AppPlatformClient           *appplatform2.AppPlatformClient
 	APIPortalClient             *appplatform.APIPortalsClient
 	APIPortalCustomDomainClient *appplatform.APIPortalCustomDomainsClient
 	AppsClient                  *appplatform.AppsClient
@@ -28,6 +30,9 @@ type Client struct {
 }
 
 func NewClient(o *common.ClientOptions) *Client {
+	appPlatformClient := appplatform2.NewAppPlatformClientWithBaseURI(o.ResourceManagerEndpoint)
+	o.ConfigureClient(&appPlatformClient.Client, o.ResourceManagerAuthorizer)
+
 	apiPortalClient := appplatform.NewAPIPortalsClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
 	o.ConfigureClient(&apiPortalClient.Client, o.ResourceManagerAuthorizer)
 
@@ -86,6 +91,7 @@ func NewClient(o *common.ClientOptions) *Client {
 	o.ConfigureClient(&storageClient.Client, o.ResourceManagerAuthorizer)
 
 	return &Client{
+		AppPlatformClient:           &appPlatformClient,
 		APIPortalClient:             &apiPortalClient,
 		APIPortalCustomDomainClient: &apiPortalCustomDomainClient,
 		AppsClient:                  &appsClient,

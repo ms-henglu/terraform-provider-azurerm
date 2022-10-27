@@ -6,13 +6,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/preview/appplatform/mgmt/2022-05-01-preview/appplatform"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"github.com/hashicorp/go-azure-helpers/resourcemanager/commonschema"
 	"github.com/hashicorp/go-azure-helpers/resourcemanager/identity"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-provider-azurerm/helpers/tf"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/validate"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/set"
@@ -29,7 +29,7 @@ func resourceSpringCloudApp() *pluginsdk.Resource {
 		Delete: resourceSpringCloudAppDelete,
 
 		Importer: pluginsdk.ImporterValidatingResourceId(func(id string) error {
-			_, err := parse.SpringCloudAppID(id)
+			_, err := appplatform.ParseAppIDInsensitively(id)
 			return err
 		}),
 
@@ -169,26 +169,25 @@ func resourceSpringCloudApp() *pluginsdk.Resource {
 }
 
 func resourceSpringCloudAppCreate(d *pluginsdk.ResourceData, meta interface{}) error {
-	client := meta.(*clients.Client).AppPlatform.AppsClient
-	servicesClient := meta.(*clients.Client).AppPlatform.ServicesClient
+	client := meta.(*clients.Client).AppPlatform.AppPlatformClient
 	subscriptionId := meta.(*clients.Client).Account.SubscriptionId
 	ctx, cancel := timeouts.ForCreate(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id := parse.NewSpringCloudAppID(subscriptionId, d.Get("resource_group_name").(string), d.Get("service_name").(string), d.Get("name").(string))
-	serviceResp, err := servicesClient.Get(ctx, id.ResourceGroup, id.SpringName)
+	id := appplatform.NewAppID(subscriptionId, d.Get("resource_group_name").(string), d.Get("service_name").(string), d.Get("name").(string))
+	serviceResp, err := client.ServicesGet(ctx, appplatform.NewSpringID(id.SubscriptionId, id.ResourceGroupName, id.ServiceName))
 	if err != nil {
 		return fmt.Errorf("unable to retrieve %q: %+v", id, err)
 	}
 
 	if d.IsNewResource() {
-		existing, err := client.Get(ctx, id.ResourceGroup, id.SpringName, id.AppName, "")
+		existing, err := client.AppsGet(ctx, id, appplatform.AppsGetOperationOptions{})
 		if err != nil {
-			if !utils.ResponseWasNotFound(existing.Response) {
+			if !response.WasNotFound(existing.HttpResponse) {
 				return fmt.Errorf("checking for presence of existing %q: %+v", id, err)
 			}
 		}
-		if !utils.ResponseWasNotFound(existing.Response) {
+		if !response.WasNotFound(existing.HttpResponse) {
 			return tf.ImportAsExistsError("azurerm_spring_cloud_app", id.ID())
 		}
 	}
@@ -204,7 +203,7 @@ func resourceSpringCloudAppCreate(d *pluginsdk.ResourceData, meta interface{}) e
 	}
 
 	app := appplatform.AppResource{
-		Location: serviceResp.Location,
+		Location: serviceResp.Model.Location,
 		Identity: identity,
 		Properties: &appplatform.AppResourceProperties{
 			AddonConfigs:          addonConfig,
@@ -213,12 +212,9 @@ func resourceSpringCloudAppCreate(d *pluginsdk.ResourceData, meta interface{}) e
 			CustomPersistentDisks: expandAppCustomPersistentDiskResourceArray(d.Get("custom_persistent_disk").([]interface{}), id),
 		},
 	}
-	future, err := client.CreateOrUpdate(ctx, id.ResourceGroup, id.SpringName, id.AppName, app)
+	err = client.AppsCreateOrUpdateThenPoll(ctx, id, app)
 	if err != nil {
 		return fmt.Errorf("creating %q: %+v", id, err)
-	}
-	if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for creation of %q: %+v", id, err)
 	}
 
 	// HTTPSOnly and PersistentDisk could only be set by update
@@ -230,12 +226,9 @@ func resourceSpringCloudAppCreate(d *pluginsdk.ResourceData, meta interface{}) e
 			PublicEndpoint: utils.Bool(enabled),
 		}
 	}
-	future, err = client.CreateOrUpdate(ctx, id.ResourceGroup, id.SpringName, id.AppName, app)
+	err = client.AppsCreateOrUpdateThenPoll(ctx, id, app)
 	if err != nil {
 		return fmt.Errorf("update %q: %+v", id, err)
-	}
-	if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for update of %q: %+v", id, err)
 	}
 
 	d.SetId(id.ID())
@@ -243,11 +236,11 @@ func resourceSpringCloudAppCreate(d *pluginsdk.ResourceData, meta interface{}) e
 }
 
 func resourceSpringCloudAppUpdate(d *pluginsdk.ResourceData, meta interface{}) error {
-	client := meta.(*clients.Client).AppPlatform.AppsClient
+	client := meta.(*clients.Client).AppPlatform.AppPlatformClient
 	ctx, cancel := timeouts.ForUpdate(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id, err := parse.SpringCloudAppID(d.Id())
+	id, err := appplatform.ParseAppIDInsensitively(d.Id())
 	if err != nil {
 		return err
 	}
@@ -278,42 +271,39 @@ func resourceSpringCloudAppUpdate(d *pluginsdk.ResourceData, meta interface{}) e
 			PublicEndpoint: utils.Bool(enabled),
 		}
 	}
-	future, err := client.CreateOrUpdate(ctx, id.ResourceGroup, id.SpringName, id.AppName, app)
+	err = client.AppsCreateOrUpdateThenPoll(ctx, *id, app)
 	if err != nil {
 		return fmt.Errorf("update %s: %+v", id, err)
-	}
-	if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for update of %s: %+v", id, err)
 	}
 
 	return resourceSpringCloudAppRead(d, meta)
 }
 
 func resourceSpringCloudAppRead(d *pluginsdk.ResourceData, meta interface{}) error {
-	client := meta.(*clients.Client).AppPlatform.AppsClient
+	client := meta.(*clients.Client).AppPlatform.AppPlatformClient
 	ctx, cancel := timeouts.ForRead(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id, err := parse.SpringCloudAppID(d.Id())
+	id, err := appplatform.ParseAppIDInsensitively(d.Id())
 	if err != nil {
 		return err
 	}
 
-	resp, err := client.Get(ctx, id.ResourceGroup, id.SpringName, id.AppName, "")
+	resp, err := client.AppsGet(ctx, *id, appplatform.AppsGetOperationOptions{})
 	if err != nil {
-		if utils.ResponseWasNotFound(resp.Response) {
+		if response.WasNotFound(resp.HttpResponse) {
 			log.Printf("[INFO] Spring Cloud App %q does not exist - removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("reading Spring Cloud App %q (Spring Cloud Service %q / Resource Group %q): %+v", id.AppName, id.SpringName, id.ResourceGroup, err)
+		return fmt.Errorf("reading %q: %+v", id, err)
 	}
 
 	d.Set("name", id.AppName)
-	d.Set("service_name", id.SpringName)
-	d.Set("resource_group_name", id.ResourceGroup)
+	d.Set("service_name", id.ServiceName)
+	d.Set("resource_group_name", id.ResourceGroupName)
 
-	identity, err := flattenSpringCloudAppIdentity(resp.Identity)
+	identity, err := flattenSpringCloudAppIdentity(resp.Model.Identity)
 	if err != nil {
 		return fmt.Errorf("flattening `identity`: %+v", err)
 	}
@@ -321,11 +311,11 @@ func resourceSpringCloudAppRead(d *pluginsdk.ResourceData, meta interface{}) err
 		return fmt.Errorf("setting `identity`: %s", err)
 	}
 
-	if prop := resp.Properties; prop != nil {
+	if prop := resp.Model.Properties; prop != nil {
 		d.Set("is_public", prop.Public)
 		d.Set("https_only", prop.HTTPSOnly)
 		d.Set("fqdn", prop.Fqdn)
-		d.Set("url", prop.URL)
+		d.Set("url", prop.Url)
 		d.Set("tls_enabled", prop.EnableEndToEndTLS)
 		if err := d.Set("addon_json", flattenSpringCloudAppAddon(prop.AddonConfigs)); err != nil {
 			return fmt.Errorf("setting `addon_json`: %s", err)
@@ -345,39 +335,36 @@ func resourceSpringCloudAppRead(d *pluginsdk.ResourceData, meta interface{}) err
 }
 
 func resourceSpringCloudAppDelete(d *pluginsdk.ResourceData, meta interface{}) error {
-	client := meta.(*clients.Client).AppPlatform.AppsClient
+	client := meta.(*clients.Client).AppPlatform.AppPlatformClient
 	ctx, cancel := timeouts.ForDelete(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id, err := parse.SpringCloudAppID(d.Id())
+	id, err := appplatform.ParseAppIDInsensitively(d.Id())
 	if err != nil {
 		return err
 	}
 
-	future, err := client.Delete(ctx, id.ResourceGroup, id.SpringName, id.AppName)
+	err = client.AppsDeleteThenPoll(ctx, *id)
 	if err != nil {
 		return fmt.Errorf("deleting %s: %+v", *id, err)
-	}
-	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for deletion of %s: %+v", *id, err)
 	}
 
 	return nil
 }
 
-func expandSpringCloudAppIdentity(input []interface{}) (*appplatform.ManagedIdentityProperties, error) {
+func expandSpringCloudAppIdentity(input []interface{}) (*identity.LegacySystemAndUserAssignedMap, error) {
 	config, err := identity.ExpandSystemAndUserAssignedMap(input)
 	if err != nil {
 		return nil, err
 	}
 
-	out := appplatform.ManagedIdentityProperties{
-		Type: appplatform.ManagedIdentityType(string(config.Type)),
+	out := identity.LegacySystemAndUserAssignedMap{
+		Type: identity.Type(string(config.Type)),
 	}
 	if config.Type == identity.TypeUserAssigned || config.Type == identity.TypeSystemAssignedUserAssigned {
-		out.UserAssignedIdentities = make(map[string]*appplatform.UserAssignedManagedIdentity)
+		out.IdentityIds = make(map[string]identity.UserAssignedIdentityDetails)
 		for k := range config.IdentityIds {
-			out.UserAssignedIdentities[k] = &appplatform.UserAssignedManagedIdentity{
+			out.IdentityIds[k] = identity.UserAssignedIdentityDetails{
 				// intentionally empty
 			}
 		}
@@ -392,30 +379,29 @@ func expandSpringCloudAppPersistentDisk(input []interface{}) *appplatform.Persis
 	}
 	raw := input[0].(map[string]interface{})
 	return &appplatform.PersistentDisk{
-		SizeInGB:  utils.Int32(int32(raw["size_in_gb"].(int))),
+		SizeInGB:  utils.Int64(int64(raw["size_in_gb"].(int))),
 		MountPath: utils.String(raw["mount_path"].(string)),
 	}
 }
 
-func expandAppCustomPersistentDiskResourceArray(input []interface{}, id parse.SpringCloudAppId) *[]appplatform.CustomPersistentDiskResource {
+func expandAppCustomPersistentDiskResourceArray(input []interface{}, id appplatform.AppId) *[]appplatform.CustomPersistentDiskResource {
 	results := make([]appplatform.CustomPersistentDiskResource, 0)
 	for _, item := range input {
 		v := item.(map[string]interface{})
 		results = append(results, appplatform.CustomPersistentDiskResource{
-			StorageID: utils.String(parse.NewSpringCloudStorageID(id.SubscriptionId, id.ResourceGroup, id.SpringName, v["storage_name"].(string)).ID()),
+			StorageId: appplatform.NewStorageID(id.SubscriptionId, id.ResourceGroupName, id.ServiceName, v["storage_name"].(string)).ID(),
 			CustomPersistentDiskProperties: &appplatform.AzureFileVolume{
-				ShareName:    utils.String(v["share_name"].(string)),
-				MountPath:    utils.String(v["mount_path"].(string)),
+				ShareName:    v["share_name"].(string),
+				MountPath:    v["mount_path"].(string),
 				ReadOnly:     utils.Bool(v["read_only_enabled"].(bool)),
 				MountOptions: utils.ExpandStringSlice(v["mount_options"].(*pluginsdk.Set).List()),
-				Type:         appplatform.TypeAzureFileVolume,
 			},
 		})
 	}
 	return &results
 }
 
-func expandSpringCloudAppAddon(input string) (map[string]map[string]interface{}, error) {
+func expandSpringCloudAppAddon(input string) (*map[string]map[string]interface{}, error) {
 	var addonConfig map[string]map[string]interface{}
 	if len(input) != 0 {
 		err := json.Unmarshal([]byte(input), &addonConfig)
@@ -423,26 +409,22 @@ func expandSpringCloudAppAddon(input string) (map[string]map[string]interface{},
 			return nil, fmt.Errorf("unable to unmarshal `addon_json`: %+v", err)
 		}
 	}
-	return addonConfig, nil
+	return &addonConfig, nil
 }
 
-func flattenSpringCloudAppIdentity(input *appplatform.ManagedIdentityProperties) (*[]interface{}, error) {
+func flattenSpringCloudAppIdentity(input *identity.LegacySystemAndUserAssignedMap) (*[]interface{}, error) {
 	var transform *identity.SystemAndUserAssignedMap
 	if input != nil {
 		transform = &identity.SystemAndUserAssignedMap{
 			Type:        identity.Type(string(input.Type)),
 			IdentityIds: make(map[string]identity.UserAssignedIdentityDetails),
 		}
-		if input.PrincipalID != nil {
-			transform.PrincipalId = *input.PrincipalID
-		}
-		if input.TenantID != nil {
-			transform.TenantId = *input.TenantID
-		}
-		for k, v := range input.UserAssignedIdentities {
+		transform.PrincipalId = input.PrincipalId
+		transform.TenantId = input.TenantId
+		for k, v := range input.IdentityIds {
 			transform.IdentityIds[k] = identity.UserAssignedIdentityDetails{
-				ClientId:    v.ClientID,
-				PrincipalId: v.PrincipalID,
+				ClientId:    v.ClientId,
+				PrincipalId: v.PrincipalId,
 			}
 		}
 	}
@@ -481,23 +463,17 @@ func flattenAppCustomPersistentDiskResourceArray(input *[]appplatform.CustomPers
 
 	for _, item := range *input {
 		var storageName string
-		if item.StorageID != nil {
-			if id, err := parse.SpringCloudStorageID(*item.StorageID); err == nil {
-				storageName = id.StorageName
-			}
+		if id, err := appplatform.ParseStorageIDInsensitively(item.StorageId); err == nil {
+			storageName = id.StorageName
 		}
 		var mountPath string
 		var shareName string
 		var readOnly bool
 		var mountOptions *[]string
 		if item.CustomPersistentDiskProperties != nil {
-			if prop, ok := item.CustomPersistentDiskProperties.AsAzureFileVolume(); ok && prop != nil {
-				if prop.MountPath != nil {
-					mountPath = *prop.MountPath
-				}
-				if prop.ShareName != nil {
-					shareName = *prop.ShareName
-				}
+			if prop, ok := item.CustomPersistentDiskProperties.(appplatform.AzureFileVolume); ok {
+				mountPath = prop.MountPath
+				shareName = prop.ShareName
 				if prop.ReadOnly != nil {
 					readOnly = *prop.ReadOnly
 				}
@@ -516,10 +492,10 @@ func flattenAppCustomPersistentDiskResourceArray(input *[]appplatform.CustomPers
 	return results
 }
 
-func flattenSpringCloudAppAddon(configs map[string]map[string]interface{}) *string {
-	if len(configs) == 0 {
+func flattenSpringCloudAppAddon(configs *map[string]map[string]interface{}) *string {
+	if configs == nil || len(*configs) == 0 {
 		return nil
 	}
-	addonConfig, _ := json.Marshal(configs)
+	addonConfig, _ := json.Marshal(*configs)
 	return utils.String(string(addonConfig))
 }

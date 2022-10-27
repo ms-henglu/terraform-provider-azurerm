@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance/check"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
@@ -219,17 +219,17 @@ func TestAccSpringCloudService_zoneRedundant(t *testing.T) {
 }
 
 func (t SpringCloudServiceResource) Exists(ctx context.Context, clients *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
-	id, err := parse.SpringCloudServiceID(state.ID)
+	id, err := appplatform.ParseSpringIDInsensitively(state.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := clients.AppPlatform.ServicesClient.Get(ctx, id.ResourceGroup, id.SpringName)
+	resp, err := clients.AppPlatform.AppPlatformClient.ServicesGet(ctx, *id)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read Spring Cloud Service %q (Resource Group %q): %+v", id.SpringName, id.ResourceGroup, err)
+		return nil, fmt.Errorf("unable to read %q: %+v", id, err)
 	}
 
-	return utils.Bool(resp.Properties != nil), nil
+	return utils.Bool(resp.Model.Properties != nil), nil
 }
 
 func (SpringCloudServiceResource) basic(data acceptance.TestData) string {

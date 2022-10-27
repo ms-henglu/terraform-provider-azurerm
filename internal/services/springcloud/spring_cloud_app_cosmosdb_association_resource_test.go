@@ -3,12 +3,12 @@ package springcloud_test
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"testing"
 
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/acceptance/check"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
@@ -276,17 +276,17 @@ func TestAccSpringCloudAppCosmosDbAssociation_table_update(t *testing.T) {
 }
 
 func (t SpringCloudAppCosmosDbAssociationResource) Exists(ctx context.Context, clients *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
-	id, err := parse.SpringCloudAppAssociationID(state.ID)
+	id, err := appplatform.ParseBindingIDInsensitively(state.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := clients.AppPlatform.BindingsClient.Get(ctx, id.ResourceGroup, id.SpringName, id.AppName, id.BindingName)
+	resp, err := clients.AppPlatform.AppPlatformClient.BindingsGet(ctx, *id)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %+v", id, err)
 	}
 
-	return utils.Bool(resp.Properties != nil), nil
+	return utils.Bool(resp.Model.Properties != nil), nil
 }
 
 func (r SpringCloudAppCosmosDbAssociationResource) cassandra_basic(data acceptance.TestData) string {

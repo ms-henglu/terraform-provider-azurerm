@@ -2,15 +2,15 @@ package springcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/appplatform/2022-09-01-preview/appplatform"
 	"time"
 
 	"github.com/hashicorp/go-azure-helpers/resourcemanager/commonschema"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/parse"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/services/springcloud/validate"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tf/pluginsdk"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/timeouts"
-	"github.com/hashicorp/terraform-provider-azurerm/utils"
 )
 
 func dataSourceSpringCloudApp() *pluginsdk.Resource {
@@ -85,16 +85,16 @@ func dataSourceSpringCloudApp() *pluginsdk.Resource {
 }
 
 func dataSourceSpringCloudAppRead(d *pluginsdk.ResourceData, meta interface{}) error {
-	client := meta.(*clients.Client).AppPlatform.AppsClient
+	client := meta.(*clients.Client).AppPlatform.AppPlatformClient
 	subscriptionId := meta.(*clients.Client).Account.SubscriptionId
 	ctx, cancel := timeouts.ForRead(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id := parse.NewSpringCloudAppID(subscriptionId, d.Get("resource_group_name").(string), d.Get("service_name").(string), d.Get("name").(string))
+	id := appplatform.NewAppID(subscriptionId, d.Get("resource_group_name").(string), d.Get("service_name").(string), d.Get("name").(string))
 
-	resp, err := client.Get(ctx, id.ResourceGroup, id.SpringName, id.AppName, "")
+	resp, err := client.AppsGet(ctx, id, appplatform.AppsGetOperationOptions{})
 	if err != nil {
-		if utils.ResponseWasNotFound(resp.Response) {
+		if response.WasNotFound(resp.HttpResponse) {
 			return fmt.Errorf("%s was not found", id)
 		}
 		return fmt.Errorf("retrieving %s: %+v", id, err)
@@ -103,9 +103,9 @@ func dataSourceSpringCloudAppRead(d *pluginsdk.ResourceData, meta interface{}) e
 	d.SetId(id.ID())
 
 	d.Set("name", id.AppName)
-	d.Set("service_name", id.SpringName)
-	d.Set("resource_group_name", id.ResourceGroup)
-	identity, err := flattenSpringCloudAppIdentity(resp.Identity)
+	d.Set("service_name", id.ServiceName)
+	d.Set("resource_group_name", id.ResourceGroupName)
+	identity, err := flattenSpringCloudAppIdentity(resp.Model.Identity)
 	if err != nil {
 		return fmt.Errorf("flattening `identity`: %+v", err)
 	}
@@ -113,11 +113,11 @@ func dataSourceSpringCloudAppRead(d *pluginsdk.ResourceData, meta interface{}) e
 		return fmt.Errorf("setting `identity`: %s", err)
 	}
 
-	if prop := resp.Properties; prop != nil {
+	if prop := resp.Model.Properties; prop != nil {
 		d.Set("fqdn", prop.Fqdn)
 		d.Set("https_only", prop.HTTPSOnly)
 		d.Set("is_public", prop.Public)
-		d.Set("url", prop.URL)
+		d.Set("url", prop.Url)
 		d.Set("tls_enabled", prop.EnableEndToEndTLS)
 
 		if err := d.Set("persistent_disk", flattenSpringCloudAppPersistentDisk(prop.PersistentDisk)); err != nil {

@@ -1,0 +1,35 @@
+
+provider "azurerm" {
+  features {}
+}
+
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-aks-221117230656513361"
+  location = "West Europe"
+}
+
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks221117230656513361"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  dns_prefix          = "acctestaks221117230656513361"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_DS2_v2"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+
+resource "azurerm_kubernetes_cluster_node_pool" "test" {
+  name                  = "internal"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.test.id
+  vm_size               = "Standard_F4s_v2"
+  node_count            = 1
+}

@@ -1,0 +1,44 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-df-221202035526164944"
+  location = "West Europe"
+}
+
+resource "azurerm_data_factory" "test" {
+  name                = "acctestdf221202035526164944"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_data_factory_pipeline" "test" {
+  name            = "acctest221202035526164944"
+  data_factory_id = azurerm_data_factory.test.id
+
+  parameters = {
+    foo = "bar"
+  }
+}
+
+resource "azurerm_eventgrid_topic" "test" {
+  name                = "acctesteg-221202035526164944"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+
+resource "azurerm_data_factory_trigger_custom_event" "test" {
+  name                = "acctestdf221202035526164944"
+  data_factory_id     = azurerm_data_factory.test.id
+  eventgrid_topic_id  = azurerm_eventgrid_topic.test.id
+  events              = ["event1"]
+  subject_begins_with = "abc"
+
+  pipeline {
+    name = azurerm_data_factory_pipeline.test.name
+  }
+}

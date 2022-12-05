@@ -344,6 +344,40 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 				Computed: true,
 			},
 
+			"guardrails_profile": {
+				Type:     pluginsdk.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &pluginsdk.Resource{
+					Schema: map[string]*pluginsdk.Schema{
+						"level": {
+							Type:     pluginsdk.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(managedclusters.LevelOff),
+								string(managedclusters.LevelEnforcement),
+								string(managedclusters.LevelWarning),
+							}, false),
+						},
+
+						"version": {
+							Type:         pluginsdk.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+						},
+
+						"excluded_namespaces": {
+							Type:     pluginsdk.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validation.StringIsNotEmpty,
+							},
+						},
+					},
+				},
+			},
+
 			"http_proxy_config": {
 				Type:     pluginsdk.TypeList,
 				Optional: true,
@@ -1208,6 +1242,9 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 	microsoftDefenderRaw := d.Get("microsoft_defender").([]interface{})
 	securityProfile := expandKubernetesClusterMicrosoftDefender(d, microsoftDefenderRaw)
 
+	guardrailsProfileRaw := d.Get("guardrails_profile").([]interface{})
+	guardrailsProfile := expandKubernetesClusterGuardrailsProfile(guardrailsProfileRaw)
+
 	workloadIdentity := false
 	if v, ok := d.GetOk("workload_identity_enabled"); ok {
 		workloadIdentity = v.(bool)
@@ -1241,6 +1278,7 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 			AutoScalerProfile:         autoScalerProfile,
 			DnsPrefix:                 utils.String(dnsPrefix),
 			EnableRBAC:                utils.Bool(d.Get("role_based_access_control_enabled").(bool)),
+			GuardrailsProfile:         guardrailsProfile,
 			KubernetesVersion:         utils.String(kubernetesVersion),
 			LinuxProfile:              linuxProfile,
 			WindowsProfile:            windowsProfile,
@@ -1748,6 +1786,11 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 		existing.Model.Properties.IngressProfile = expandKubernetesClusterIngressProfile(d, d.Get("web_app_routing").([]interface{}))
 	}
 
+	if d.HasChange("guardrails_profile") {
+		updateCluster = true
+		existing.Model.Properties.GuardrailsProfile = expandKubernetesClusterGuardrailsProfile(d.Get("guardrails_profile").([]interface{}))
+	}
+
 	if updateCluster {
 		// If Defender was explicitly disabled in a prior update then we should strip SecurityProfile.AzureDefender from the request
 		// body to prevent errors in cases where Defender is disabled for the entire subscription
@@ -2053,6 +2096,11 @@ func resourceKubernetesClusterRead(d *pluginsdk.ResourceData, meta interface{}) 
 		ingressProfile := flattenKubernetesClusterIngressProfile(props.IngressProfile)
 		if err := d.Set("web_app_routing", ingressProfile); err != nil {
 			return fmt.Errorf("setting `web_app_routing`: %+v", err)
+		}
+
+		guardrailsProfile := flattenKubernetesClusterGuardrailsProfile(props.GuardrailsProfile)
+		if err := d.Set("guardrails_profile", guardrailsProfile); err != nil {
+			return fmt.Errorf("setting `guardrails_profile`: %+v", err)
 		}
 
 		workloadIdentity := false
@@ -3382,6 +3430,31 @@ func flattenKubernetesClusterIngressProfile(input *managedclusters.ManagedCluste
 	return []interface{}{
 		map[string]interface{}{
 			"dns_zone_id": dnsZoneId,
+		},
+	}
+}
+
+func expandKubernetesClusterGuardrailsProfile(input []interface{}) *managedclusters.GuardrailsProfile {
+	if len(input) == 0 || input[0] == nil {
+		return nil
+	}
+	config := input[0].(map[string]interface{})
+	return &managedclusters.GuardrailsProfile{
+		ExcludedNamespaces: utils.ExpandStringSlice(config["excluded_namespaces"].([]interface{})),
+		Level:              managedclusters.Level(config["level"].(string)),
+		Version:            config["version"].(string),
+	}
+}
+
+func flattenKubernetesClusterGuardrailsProfile(input *managedclusters.GuardrailsProfile) []interface{} {
+	if input == nil {
+		return []interface{}{}
+	}
+	return []interface{}{
+		map[string]interface{}{
+			"level":               input.Level,
+			"version":             input.Version,
+			"excluded_namespaces": utils.FlattenStringSlice(input.ExcludedNamespaces),
 		},
 	}
 }

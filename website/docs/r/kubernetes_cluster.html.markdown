@@ -103,6 +103,8 @@ In addition, one of either `identity` or `service_principal` blocks must be spec
 
 * `edge_zone` - (Optional) Specifies the Edge Zone within the Azure Region where this Managed Kubernetes Cluster should exist. Changing this forces a new resource to be created.
 
+* `guardrails_profile` - (Optional) A `guardrails_profile` block as defined below.
+
 * `http_application_routing_enabled` - (Optional) Should HTTP Application Routing be enabled?
 
 -> **Note:** At this time HTTP Application Routing is not supported in Azure China or Azure US Government.
@@ -405,6 +407,16 @@ If `enable_auto_scaling` is set to `false`, then the following fields can also b
 * `zones` - (Optional) Specifies a list of Availability Zones in which this Kubernetes Cluster should be located. Changing this forces a new Kubernetes Cluster to be created.
 
 -> **Note:** This requires that the `type` is set to `VirtualMachineScaleSets` and that `load_balancer_sku` is set to `standard`.
+
+---
+
+An `guardrails_profile` block supports the following:
+
+* `level` - (Required) Specifies the guardrails level to be used. By default, Guardrails is enabled for all namespaces except those that AKS excludes via system excluded namespaces. Possible values are `Enforcement`, `Off` and `Warning`.
+
+* `version` - (Required) Specifies the version of constraints to use.
+
+* `excluded_namespaces` - (Optional) Specifies a list of namespaces excluded from guardrails checks.
 
 ---
 

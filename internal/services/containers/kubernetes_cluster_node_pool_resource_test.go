@@ -903,6 +903,43 @@ func TestAccKubernetesClusterNodePool_customCATrustEnabled(t *testing.T) {
 	})
 }
 
+func TestAccKubernetesClusterNodePool_networkProfile(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_kubernetes_cluster_node_pool", "test")
+	r := KubernetesClusterNodePoolResource{}
+
+	data.ResourceTest(t, r, []acceptance.TestStep{
+		{
+			Config: r.networkProfile(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+		{
+			Config: r.networkProfileUpdated(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+	})
+}
+
+func TestAccKubernetesClusterNodePool_nodeIPTags(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_kubernetes_cluster_node_pool", "test")
+	r := KubernetesClusterNodePoolResource{}
+
+	data.ResourceTest(t, r, []acceptance.TestStep{
+		{
+			Config: r.nodeIPTags(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+	})
+}
+
 func (t KubernetesClusterNodePoolResource) Exists(ctx context.Context, clients *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
 	id, err := agentpools.ParseAgentPoolID(state.ID)
 	if err != nil {
@@ -2383,4 +2420,160 @@ resource "azurerm_kubernetes_cluster_node_pool" "test" {
   custom_ca_trust_enabled = "%t"
 }
 `, data.RandomInteger, data.Locations.Primary, data.RandomInteger, data.RandomInteger, enabled)
+}
+
+func (KubernetesClusterNodePoolResource) networkProfile(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-aks-%[2]d"
+  location = "%[1]s"
+}
+
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks%[2]d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  dns_prefix          = "acctestaks%[2]d"
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2s_v3"
+  }
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_application_security_group" "test" {
+  name                = "acctest-%[2]d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_kubernetes_cluster_node_pool" "test" {
+  name                  = "internal"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.test.id
+  vm_size               = "Standard_D2s_v3"
+  network_profile {
+    allowed_host_ports {
+      port_start = 6300
+      port_end   = 6302
+      protocol   = "UDP"
+    }
+
+    allowed_host_ports {
+      port_start = 6304
+      port_end   = 6305
+      protocol   = "TCP"
+    }
+
+    application_security_group_ids = [azurerm_application_security_group.test.id]
+  }
+}
+`, data.Locations.Primary, data.RandomInteger)
+}
+
+func (KubernetesClusterNodePoolResource) networkProfileUpdated(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-aks-%[2]d"
+  location = "%[1]s"
+}
+
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks%[2]d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  dns_prefix          = "acctestaks%[2]d"
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2s_v3"
+  }
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_application_security_group" "test" {
+  name                = "acctest-%[2]d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_application_security_group" "test2" {
+  name                = "acctest-another-%[2]d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_kubernetes_cluster_node_pool" "test" {
+  name                  = "internal"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.test.id
+  vm_size               = "Standard_D2s_v3"
+  network_profile {
+    allowed_host_ports {
+      port_start = 6310
+      port_end   = 6312
+      protocol   = "TCP"
+    }
+
+    allowed_host_ports {
+      port_start = 6314
+      port_end   = 6315
+      protocol   = "UDP"
+    }
+
+    application_security_group_ids = [azurerm_application_security_group.test.id, azurerm_application_security_group.test2.id]
+  }
+}
+`, data.Locations.Primary, data.RandomInteger)
+}
+
+func (KubernetesClusterNodePoolResource) nodeIPTags(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-aks-%[2]d"
+  location = "%[1]s"
+}
+
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks%[2]d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  dns_prefix          = "acctestaks%[2]d"
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2s_v3"
+  }
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_kubernetes_cluster_node_pool" "test" {
+  name                  = "internal"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.test.id
+  vm_size               = "Standard_D2s_v3"
+  enable_node_public_ip = true
+  network_profile {
+    node_public_ip_tags = {
+      RoutingPreference = "Internet"
+    }
+  }
+}
+`, data.Locations.Primary, data.RandomInteger)
 }

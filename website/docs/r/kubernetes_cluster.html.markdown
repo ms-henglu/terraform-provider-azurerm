@@ -360,6 +360,8 @@ A `default_node_pool` block supports the following:
 
 * `message_of_the_day` - (Optional) A base64-encoded string which will be written to /etc/motd after decoding. This allows customization of the message of the day for Linux nodes. It cannot be specified for Windows nodes and must be a static string (i.e. will be printed raw and not executed as a script). Changing this forces a new resource to be created.
 
+* `network_profile` - (Optional) A `network_profile` block as documented below.
+
 * `node_public_ip_prefix_id` - (Optional) Resource ID for the Public IP Addresses Prefix for the nodes in this Node Pool. `enable_node_public_ip` should be `true`. Changing this forces a new resource to be created.
 
 * `node_labels` - (Optional) A map of Kubernetes labels which should be applied to nodes in the Default Node Pool.
@@ -483,6 +485,28 @@ A `linux_os_config` block supports the following:
 * `transparent_huge_page_defrag` - (Optional) specifies the defrag configuration for Transparent Huge Page. Possible values are `always`, `defer`, `defer+madvise`, `madvise` and `never`. Changing this forces a new resource to be created.
 
 * `transparent_huge_page_enabled` - (Optional) Specifies the Transparent Huge Page enabled configuration. Possible values are `always`, `madvise` and `never`. Changing this forces a new resource to be created.
+
+---
+
+A `network_profile` block supports the following:
+
+* `allowed_host_ports` - (Optional) One or more `allowed_host_ports` block as defined below.
+
+* `application_security_group_ids` - (Optional) Specifies a list of IDs of the application security groups which agent pool will associate when created.
+
+* `node_public_ip_tags` - (Optional) Specifies a mapping of tags to the instance-level public IPs.
+
+-> **Note:** This requires that the Preview Feature `Microsoft.ContainerService/NodePublicIPTagsPreview` is enabled and the Resource Provider is re-registered.
+
+---
+
+A `allowed_host_ports` block supports the following:
+
+* `port_start` - (Optional) Specifies the minimum port that is included in the range. It should be ranged from 1 to 65535, and be less than or equal to `port_end`.
+
+* `port_end` - (Optional) Specifies the maximum port that is included in the range. It should be ranged from 1 to 65535, and be greater than or equal to `port_start`.
+
+* `protocol` - (Optional) Specifies the network protocol of the port. Possible values are `UDP` and `TCP`.
 
 ---
 

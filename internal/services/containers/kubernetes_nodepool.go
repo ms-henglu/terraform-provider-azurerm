@@ -137,6 +137,8 @@ func SchemaDefaultNodePool() *pluginsdk.Schema {
 						ValidateFunc: validation.IntBetween(1, 1000),
 					},
 
+					"network_profile": schemaNodePoolNetworkProfile(),
+
 					"node_count": {
 						Type:         pluginsdk.TypeInt,
 						Optional:     true,
@@ -626,6 +628,64 @@ func schemaNodePoolSysctlConfig() *pluginsdk.Schema {
 	}
 }
 
+func schemaNodePoolNetworkProfile() *pluginsdk.Schema {
+	return &pluginsdk.Schema{
+		Type:     pluginsdk.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &pluginsdk.Resource{
+			Schema: map[string]*pluginsdk.Schema{
+				"allowed_host_ports": {
+					Type:     pluginsdk.TypeList,
+					Optional: true,
+					Elem: &pluginsdk.Resource{
+						Schema: map[string]*pluginsdk.Schema{
+							"port_start": {
+								Type:         pluginsdk.TypeInt,
+								Required:     true,
+								ValidateFunc: validation.IntBetween(1, 65536),
+							},
+
+							"port_end": {
+								Type:         pluginsdk.TypeInt,
+								Required:     true,
+								ValidateFunc: validation.IntBetween(1, 65536),
+							},
+
+							"protocol": {
+								Type:     pluginsdk.TypeString,
+								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(agentpools.ProtocolUDP),
+									string(agentpools.ProtocolTCP),
+								}, false),
+							},
+						},
+					},
+				},
+
+				"application_security_group_ids": {
+					Type:     pluginsdk.TypeList,
+					Optional: true,
+					Elem: &pluginsdk.Schema{
+						Type:         pluginsdk.TypeString,
+						ValidateFunc: networkValidate.ApplicationSecurityGroupID,
+					},
+				},
+
+				"node_public_ip_tags": {
+					Type:     pluginsdk.TypeMap,
+					Optional: true,
+					ForceNew: true,
+					Elem: &pluginsdk.Schema{
+						Type: pluginsdk.TypeString,
+					},
+				},
+			},
+		},
+	}
+}
+
 func ConvertDefaultNodePoolToAgentPool(input *[]managedclusters.ManagedClusterAgentPoolProfile) agentpools.AgentPool {
 	defaultCluster := (*input)[0]
 
@@ -685,6 +745,33 @@ func ConvertDefaultNodePoolToAgentPool(input *[]managedclusters.ManagedClusterAg
 			linuxOsConfig.Sysctls = utils.ToPtr(agentpools.SysctlConfig(*sysctlsRaw))
 		}
 		agentpool.Properties.LinuxOSConfig = &linuxOsConfig
+	}
+	if networkProfileRaw := defaultCluster.NetworkProfile; networkProfileRaw != nil {
+		networkProfile := agentpools.AgentPoolNetworkProfile{
+			ApplicationSecurityGroups: networkProfileRaw.ApplicationSecurityGroups,
+		}
+		if allowedHostPortsRaw := networkProfileRaw.AllowedHostPorts; allowedHostPortsRaw != nil {
+			allowedHostPorts := make([]agentpools.PortRange, 0)
+			for _, portRangeRaw := range *allowedHostPortsRaw {
+				allowedHostPorts = append(allowedHostPorts, agentpools.PortRange{
+					PortEnd:   portRangeRaw.PortEnd,
+					PortStart: portRangeRaw.PortStart,
+					Protocol:  (*agentpools.Protocol)(portRangeRaw.Protocol),
+				})
+			}
+			networkProfile.AllowedHostPorts = &allowedHostPorts
+		}
+		if nodePublicIPTagsRaw := networkProfileRaw.NodePublicIPTags; nodePublicIPTagsRaw != nil {
+			ipTags := make([]agentpools.IPTag, 0)
+			for _, ipTagRaw := range *nodePublicIPTagsRaw {
+				ipTags = append(ipTags, agentpools.IPTag{
+					IPTagType: ipTagRaw.IPTagType,
+					Tag:       ipTagRaw.Tag,
+				})
+			}
+			networkProfile.NodePublicIPTags = &ipTags
+		}
+		agentpool.Properties.NetworkProfile = &networkProfile
 	}
 	if osTypeNodePool := defaultCluster.OsType; osTypeNodePool != nil {
 		agentpool.Properties.OsType = utils.ToPtr(agentpools.OSType(string(*osTypeNodePool)))
@@ -896,6 +983,10 @@ func ExpandDefaultNodePool(d *pluginsdk.ResourceData) (*[]managedclusters.Manage
 			return nil, err
 		}
 		profile.LinuxOSConfig = linuxOSConfig
+	}
+
+	if networkProfile := raw["network_profile"].([]interface{}); len(networkProfile) > 0 {
+		profile.NetworkProfile = expandClusterPoolNetworkProfile(networkProfile)
 	}
 
 	return &[]managedclusters.ManagedClusterAgentPoolProfile{
@@ -1240,6 +1331,8 @@ func FlattenDefaultNodePool(input *[]managedclusters.ManagedClusterAgentPoolProf
 		return nil, err
 	}
 
+	networkProfile := flattenClusterPoolNetworkProfile(agentPool.NetworkProfile)
+
 	out := map[string]interface{}{
 		"enable_auto_scaling":           enableAutoScaling,
 		"enable_node_public_ip":         enableNodePublicIP,
@@ -1253,6 +1346,7 @@ func FlattenDefaultNodePool(input *[]managedclusters.ManagedClusterAgentPoolProf
 		"message_of_the_day":            messageOfTheDay,
 		"min_count":                     minCount,
 		"name":                          name,
+		"network_profile":               networkProfile,
 		"node_count":                    count,
 		"node_labels":                   nodeLabels,
 		"node_public_ip_prefix_id":      nodePublicIPPrefixID,
@@ -1654,4 +1748,108 @@ func expandClusterNodePoolUpgradeSettings(input []interface{}) *managedclusters.
 		setting.MaxSurge = utils.String(maxSurgeRaw)
 	}
 	return setting
+}
+
+func expandClusterPoolNetworkProfile(input []interface{}) *managedclusters.AgentPoolNetworkProfile {
+	if len(input) == 0 || input[0] == nil {
+		return nil
+	}
+	v := input[0].(map[string]interface{})
+	return &managedclusters.AgentPoolNetworkProfile{
+		AllowedHostPorts:          expandClusterPoolNetworkProfileAllowedHostPorts(v["allowed_host_ports"].([]interface{})),
+		ApplicationSecurityGroups: utils.ExpandStringSlice(v["application_security_group_ids"].([]interface{})),
+		NodePublicIPTags:          expandClusterPoolNetworkProfileNodePublicIPTags(v["node_public_ip_tags"].(map[string]interface{})),
+	}
+}
+
+func expandClusterPoolNetworkProfileAllowedHostPorts(input []interface{}) *[]managedclusters.PortRange {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make([]managedclusters.PortRange, 0)
+	for _, i := range input {
+		v := i.(map[string]interface{})
+		out = append(out, managedclusters.PortRange{
+			PortStart: utils.Int64(int64(v["port_start"].(int))),
+			PortEnd:   utils.Int64(int64(v["port_end"].(int))),
+			Protocol:  utils.ToPtr(managedclusters.Protocol(v["protocol"].(string))),
+		})
+	}
+	return &out
+}
+
+func expandClusterPoolNetworkProfileNodePublicIPTags(input map[string]interface{}) *[]managedclusters.IPTag {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make([]managedclusters.IPTag, 0)
+
+	for key, val := range input {
+		ipTag := managedclusters.IPTag{
+			IPTagType: utils.String(key),
+			Tag:       utils.String(val.(string)),
+		}
+		out = append(out, ipTag)
+	}
+	return &out
+}
+
+func flattenClusterPoolNetworkProfile(input *managedclusters.AgentPoolNetworkProfile) []interface{} {
+	if input == nil {
+		return []interface{}{}
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"allowed_host_ports":             flattenClusterPoolNetworkProfileAllowedHostPorts(input.AllowedHostPorts),
+			"application_security_group_ids": utils.FlattenStringSlice(input.ApplicationSecurityGroups),
+			"node_public_ip_tags":            flattenClusterPoolNetworkProfileNodePublicIPTags(input.NodePublicIPTags),
+		},
+	}
+}
+
+func flattenClusterPoolNetworkProfileAllowedHostPorts(input *[]managedclusters.PortRange) []interface{} {
+	if input == nil {
+		return []interface{}{}
+	}
+	out := make([]interface{}, 0)
+
+	for _, portRange := range *input {
+		var portStart int64
+		if portRange.PortStart != nil {
+			portStart = *portRange.PortStart
+		}
+
+		var portEnd int64
+		if portRange.PortEnd != nil {
+			portEnd = *portRange.PortEnd
+		}
+
+		var protocol string
+		if portRange.Protocol != nil {
+			protocol = string(*portRange.Protocol)
+		}
+		out = append(out, map[string]interface{}{
+			"port_start": portStart,
+			"port_end":   portEnd,
+			"protocol":   protocol,
+		})
+	}
+
+	return out
+}
+
+func flattenClusterPoolNetworkProfileNodePublicIPTags(input *[]managedclusters.IPTag) map[string]interface{} {
+	if input == nil {
+		return map[string]interface{}{}
+	}
+	out := make(map[string]interface{})
+
+	for _, tag := range *input {
+		if tag.IPTagType != nil {
+			out[*tag.IPTagType] = tag.Tag
+		}
+	}
+
+	return out
 }

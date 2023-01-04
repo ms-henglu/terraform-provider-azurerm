@@ -6,8 +6,11 @@ package acceptance
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -169,14 +172,14 @@ func RunTestsInSequence(t *testing.T, tests map[string]map[string]func(t *testin
 func (td TestData) runAcceptanceTest(t *testing.T, testCase resource.TestCase) {
 	testCase.ExternalProviders = td.externalProviders()
 	testCase.ProtoV5ProviderFactories = framework.ProtoV5ProviderFactoriesInit(context.Background(), "azurerm", "azurerm-alt")
-
+	td.modifyTestCase(&testCase)
 	resource.ParallelTest(t, testCase)
 }
 
 func (td TestData) runAcceptanceSequentialTest(t *testing.T, testCase resource.TestCase) {
 	testCase.ExternalProviders = td.externalProviders()
 	testCase.ProtoV5ProviderFactories = framework.ProtoV5ProviderFactoriesInit(context.Background(), "azurerm")
-
+	td.modifyTestCase(&testCase)
 	resource.Test(t, testCase)
 }
 
@@ -199,4 +202,62 @@ func (td TestData) externalProviders() map[string]resource.ExternalProvider {
 			Source:            "registry.terraform.io/hashicorp/tls",
 		},
 	}
+}
+
+func (td TestData) modifyTestCase(testCase *resource.TestCase) {
+	providersBackup := testCase.ProtoV5ProviderFactories
+	externalProvidersBackup := testCase.ExternalProviders
+	testCase.ProtoV5ProviderFactories = nil
+	testCase.ExternalProviders = nil
+
+	// add missing import step
+	steps := make([]TestStep, 0)
+	for i, step := range testCase.Steps {
+		steps = append(steps, step)
+		if !step.ImportState && step.ExpectError == nil && (i == len(testCase.Steps)-1 || !testCase.Steps[i+1].ImportState) {
+			steps = append(steps, TestStep{
+				ResourceName:      td.ResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			})
+		}
+	}
+
+	versionConstraint := ""
+	if version := os.Getenv("TF_ACC_PROVIDER_VERSION"); version != "" {
+		versionConstraint = fmt.Sprintf("=%s", strings.TrimPrefix(version, "v"))
+	}
+
+	for index, step := range steps {
+		if step.ImportState {
+			steps[index].ProtoV5ProviderFactories = providersBackup
+			steps[index].ExternalProviders = externalProvidersBackup
+		} else {
+			steps[index].ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){}
+			steps[index].ExternalProviders = map[string]resource.ExternalProvider{
+				"azurerm": {
+					VersionConstraint: versionConstraint,
+					Source:            "registry.terraform.io/hashicorp/azurerm",
+				},
+				"azuread": {
+					VersionConstraint: "=2.47.0",
+					Source:            "registry.terraform.io/hashicorp/azuread",
+				},
+				"random": {
+					VersionConstraint: "=3.6.3",
+					Source:            "registry.terraform.io/hashicorp/random",
+				},
+				"time": {
+					VersionConstraint: "=0.9.1",
+					Source:            "registry.terraform.io/hashicorp/time",
+				},
+				"tls": {
+					VersionConstraint: "=4.0.4",
+					Source:            "registry.terraform.io/hashicorp/tls",
+				},
+			}
+		}
+	}
+
+	testCase.Steps = steps
 }

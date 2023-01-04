@@ -2,6 +2,8 @@ package acceptance
 
 import (
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -106,14 +108,14 @@ func RunTestsInSequence(t *testing.T, tests map[string]map[string]func(t *testin
 func (td TestData) runAcceptanceTest(t *testing.T, testCase resource.TestCase) {
 	testCase.ExternalProviders = td.externalProviders()
 	testCase.ProviderFactories = td.providers()
-
+	td.modifyTestCase(&testCase)
 	resource.ParallelTest(t, testCase)
 }
 
 func (td TestData) runAcceptanceSequentialTest(t *testing.T, testCase resource.TestCase) {
 	testCase.ExternalProviders = td.externalProviders()
 	testCase.ProviderFactories = td.providers()
-
+	td.modifyTestCase(&testCase)
 	resource.Test(t, testCase)
 }
 
@@ -137,4 +139,50 @@ func (td TestData) externalProviders() map[string]resource.ExternalProvider {
 			Source:            "registry.terraform.io/hashicorp/azuread",
 		},
 	}
+}
+
+func (td TestData) modifyTestCase(testCase *resource.TestCase) {
+	providersBackup := testCase.ProviderFactories
+	externalProvidersBackup := testCase.ExternalProviders
+	testCase.ProviderFactories = nil
+	testCase.ExternalProviders = nil
+
+	// add missing import step
+	steps := make([]TestStep, 0)
+	for i, step := range testCase.Steps {
+		steps = append(steps, step)
+		if !step.ImportState && step.ExpectError == nil && (i == len(testCase.Steps)-1 || !testCase.Steps[i+1].ImportState) {
+			steps = append(steps, TestStep{
+				ResourceName:      td.ResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			})
+		}
+	}
+
+	versionConstraint := ""
+	if version := os.Getenv("TF_ACC_PROVIDER_VERSION"); version != "" {
+		versionConstraint = fmt.Sprintf("=%s", strings.TrimPrefix(version, "v"))
+	}
+
+	for index, step := range steps {
+		if step.ImportState {
+			steps[index].ProviderFactories = providersBackup
+			steps[index].ExternalProviders = externalProvidersBackup
+		} else {
+			steps[index].ProviderFactories = map[string]func() (*schema.Provider, error){}
+			steps[index].ExternalProviders = map[string]resource.ExternalProvider{
+				"azuread": {
+					VersionConstraint: "=2.8.0",
+					Source:            "registry.terraform.io/hashicorp/azuread",
+				},
+				"azurerm": {
+					VersionConstraint: versionConstraint,
+					Source:            "registry.terraform.io/hashicorp/azurerm",
+				},
+			}
+		}
+	}
+
+	testCase.Steps = steps
 }

@@ -1,0 +1,16 @@
+
+
+provider "azurerm" {
+  features {}
+}
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-networkfw-230106034505394743"
+  location = "West Europe"
+}
+
+resource "azurerm_firewall_policy" "test" {
+  name                = "acctest-networkfw-Policy-230106034505394743"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Premium"
+}

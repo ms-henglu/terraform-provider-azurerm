@@ -104,6 +104,12 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 				Optional: true,
 				Computed: !features.FourPointOhBeta(),
 				MaxItems: 1,
+				ConfigMode: func() schema.SchemaConfigMode {
+					if !features.FourPointOhBeta() {
+						return schema.SchemaConfigModeAttr
+					}
+					return schema.SchemaConfigModeAuto
+				}(),
 				Elem: &pluginsdk.Resource{
 					Schema: map[string]*pluginsdk.Schema{
 						"vnet_integration_enabled": {

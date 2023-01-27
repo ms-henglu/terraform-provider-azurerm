@@ -1,0 +1,21 @@
+
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-fluidrelay-230127045447406960"
+  location = "West Europe"
+}
+
+
+resource "azurerm_fluid_relay_server" "test" {
+  name                = "acctestRG-fuildRelayServer-230127045447406960"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = "West Europe"
+  tags = {
+    foo = "bar"
+  }
+}

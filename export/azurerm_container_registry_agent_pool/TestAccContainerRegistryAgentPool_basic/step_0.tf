@@ -1,0 +1,23 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-acragent_pool-230203063101377894"
+  location = "West Europe"
+}
+
+resource "azurerm_container_registry" "test" {
+  name                = "testacccr230203063101377894"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Premium"
+}
+
+resource "azurerm_container_registry_agent_pool" "test" {
+  name                    = "ap230203063101394"
+  resource_group_name     = azurerm_resource_group.test.name
+  location                = azurerm_resource_group.test.location
+  container_registry_name = azurerm_container_registry.test.name
+}

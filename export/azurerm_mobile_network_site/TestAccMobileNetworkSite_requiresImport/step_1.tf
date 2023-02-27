@@ -1,0 +1,35 @@
+
+			
+				
+				
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctest-mn-230227033058045457"
+  location = "eastus"
+}
+
+
+resource "azurerm_mobile_network" "test" {
+  name                = "acctest-mn-230227033058045457"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = "eastus"
+  mobile_country_code = "001"
+  mobile_network_code = "01"
+}
+
+
+resource "azurerm_mobile_network_site" "test" {
+  name              = "acctest-mns-230227033058045457"
+  mobile_network_id = azurerm_mobile_network.test.id
+  location          = "eastus"
+}
+
+
+resource "azurerm_mobile_network_site" "import" {
+  name              = azurerm_mobile_network_site.test.name
+  mobile_network_id = azurerm_mobile_network.test.id
+  location          = "eastus"
+}

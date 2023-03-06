@@ -128,7 +128,7 @@ github.com/google/uuid
 # github.com/hashicorp/errwrap v1.1.0
 ## explicit
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-azure-helpers v0.52.0
+# github.com/hashicorp/go-azure-helpers v0.52.0 => /Users/luheng/go/src/github.com/hashicorp/go-azure-helpers
 ## explicit; go 1.19
 github.com/hashicorp/go-azure-helpers/authentication
 github.com/hashicorp/go-azure-helpers/lang/dates
@@ -968,3 +968,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.15
 software.sslmate.com/src/go-pkcs12
 software.sslmate.com/src/go-pkcs12/internal/rc2
+# github.com/hashicorp/go-azure-helpers => /Users/luheng/go/src/github.com/hashicorp/go-azure-helpers

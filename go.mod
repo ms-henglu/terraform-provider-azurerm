@@ -84,3 +84,7 @@ require (
 )
 
 go 1.19
+
+replace (
+	github.com/hashicorp/go-azure-helpers => /Users/luheng/go/src/github.com/hashicorp/go-azure-helpers
+)

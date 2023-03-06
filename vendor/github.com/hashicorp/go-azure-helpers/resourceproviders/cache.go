@@ -9,15 +9,15 @@ import (
 // cachedResourceProviders can be (validly) nil - as such this shouldn't be relied on
 var cachedResourceProviders *[]resources.Provider
 
-// CachedSupportedProviders returns cached the supported Resource Providers, if not cached it attempts to retrieve from the Resource Manager API
+// CacheSupportedProviders attempts to retrieve the supported Resource Providers from the Resource Manager API
 // and caches them, for used in enhanced validation
-func CachedSupportedProviders(ctx context.Context, client *resources.ProvidersClient) (*[]resources.Provider, error) {
+func CacheSupportedProviders(ctx context.Context, client *resources.ProvidersClient) error {
 	if cachedResourceProviders != nil {
-		return cachedResourceProviders, nil
+		return nil
 	}
 	providers, err := availableResourceProviders(ctx, client)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	cached := make([]resources.Provider, 0)
 	for _, provider := range providers {
@@ -27,5 +27,5 @@ func CachedSupportedProviders(ctx context.Context, client *resources.ProvidersCl
 		})
 	}
 	cachedResourceProviders = &cached
-	return cachedResourceProviders, nil
+	return nil
 }

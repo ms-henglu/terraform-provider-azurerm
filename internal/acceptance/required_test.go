@@ -37,22 +37,15 @@ func TestAccEnsureRequiredResourceProvidersAreRegistered(t *testing.T) {
 
 	client := armClient.Resource.ProvidersClient
 	ctx := armClient.StopContext
-	providerList, err := client.List(ctx, nil, "")
-	if err != nil {
-		t.Fatalf("Unable to list provider registration status, it is possible that this is due to invalid "+
-			"credentials or the service principal does not have permission to use the Resource Manager API, Azure "+
-			"error: %s", err)
-	}
 
-	availableResourceProviders := providerList.Values()
 	requiredResourceProviders := rmResourceProviders.Required()
-	err = rmResourceProviders.EnsureRegistered(ctx, *client, availableResourceProviders, requiredResourceProviders)
+	err = resourceproviders.EnsureRegistered(ctx, *client, requiredResourceProviders)
 	if err != nil {
 		t.Fatalf("Error registering Resource Providers: %+v", err)
 	}
 
 	// refresh the list now things have been re-registered
-	providerList, err = client.List(ctx, nil, "")
+	providerList, err := client.List(ctx, nil, "")
 	if err != nil {
 		t.Fatalf("Unable to list provider registration status, it is possible that this is due to invalid "+
 			"credentials or the service principal does not have permission to use the Resource Manager API, Azure "+

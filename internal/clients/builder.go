@@ -8,12 +8,12 @@ import (
 
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/go-azure-helpers/resourcemanager/location"
+	"github.com/hashicorp/go-azure-helpers/resourceproviders"
 	"github.com/hashicorp/go-azure-sdk/sdk/auth"
 	authWrapper "github.com/hashicorp/go-azure-sdk/sdk/auth/autorest"
 	"github.com/hashicorp/go-azure-sdk/sdk/environments"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/common"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/features"
-	"github.com/hashicorp/terraform-provider-azurerm/internal/resourceproviders"
 )
 
 type ClientBuilder struct {
@@ -158,7 +158,7 @@ func Build(ctx context.Context, builder ClientBuilder) (*Client, error) {
 
 	if features.EnhancedValidationEnabled() {
 		location.CacheSupportedLocations(ctx, *resourceManagerEndpoint)
-		_, err := resourceproviders.CachedSupportedProviders(ctx, client.Resource.ProvidersClient)
+		err := resourceproviders.CacheSupportedProviders(ctx, client.Resource.ProvidersClient)
 		if err != nil {
 			log.Printf("[DEBUG] error retrieving providers: %+v. Enhanced validation will be unavailable", err)
 		}

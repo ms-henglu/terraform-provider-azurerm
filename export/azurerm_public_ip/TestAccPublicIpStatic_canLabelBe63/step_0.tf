@@ -1,0 +1,18 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-230313021634723130"
+  location = "West Europe"
+}
+
+resource "azurerm_public_ip" "test" {
+  name                = "acctestpublicip-230313021634723130"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  allocation_method = "Static"
+  domain_name_label = "2a9vh3upvc1phjc0xbfiyt9o2godul1d4nwvkungepkwbaudpoilvhswglnabe2"
+}

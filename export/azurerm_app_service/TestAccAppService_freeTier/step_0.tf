@@ -1,0 +1,31 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-230407024337537643"
+  location = "West Europe"
+}
+
+resource "azurerm_app_service_plan" "test" {
+  name                = "acctestASP-230407024337537643"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  sku {
+    tier = "Free"
+    size = "F1"
+  }
+}
+
+resource "azurerm_app_service" "test" {
+  name                = "acctestAS-230407024337537643"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  app_service_plan_id = azurerm_app_service_plan.test.id
+
+  site_config {
+    use_32_bit_worker_process = true
+  }
+}

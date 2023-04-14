@@ -1,0 +1,18 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-230414020945117638"
+  location = "West Europe"
+}
+
+resource "azurerm_managed_disk" "test" {
+  name                 = "acctestd-230414020945117638"
+  location             = azurerm_resource_group.test.location
+  resource_group_name  = azurerm_resource_group.test.name
+  storage_account_type = "Standard_LRS"
+  create_option        = "Empty"
+  disk_size_gb         = "4"
+}

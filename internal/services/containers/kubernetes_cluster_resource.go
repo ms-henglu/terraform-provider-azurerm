@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/containerservice/2023-02-02-preview/snapshots"
 	"log"
 	"strconv"
 	"strings"
@@ -1143,6 +1144,13 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 				}, false),
 			},
 
+			"snapshot_id": {
+				Type:         pluginsdk.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: snapshots.ValidateSnapshotID,
+			},
+
 			"storage_profile": {
 				Type:     pluginsdk.TypeList,
 				Optional: true,
@@ -1542,6 +1550,12 @@ func resourceKubernetesClusterCreate(d *pluginsdk.ResourceData, meta interface{}
 
 	if serviceMeshProfile := expandKubernetesClusterServiceMeshProfile(d.Get("service_mesh_profile").([]interface{}), &managedclusters.ServiceMeshProfile{}); serviceMeshProfile != nil {
 		parameters.Properties.ServiceMeshProfile = serviceMeshProfile
+	}
+
+	if snapshotId := d.Get("snapshot_id").(string); snapshotId != "" {
+		parameters.Properties.CreationData = &managedclusters.CreationData{
+			SourceResourceId: utils.String(snapshotId),
+		}
 	}
 
 	future, err := client.CreateOrUpdate(ctx, id, parameters)
@@ -2406,6 +2420,10 @@ func resourceKubernetesClusterRead(d *pluginsdk.ResourceData, meta interface{}) 
 			d.Set("kube_admin_config_raw", adminKubeConfigRaw)
 			if err := d.Set("kube_admin_config", adminKubeConfig); err != nil {
 				return fmt.Errorf("setting `kube_admin_config`: %+v", err)
+			}
+
+			if props.CreationData != nil {
+				d.Set("snapshot_id", props.CreationData.SourceResourceId)
 			}
 		}
 

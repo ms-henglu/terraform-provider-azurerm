@@ -1,0 +1,30 @@
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-aks-230519074450821469"
+  location = "West Europe"
+}
+
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks230519074450821469"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  dns_prefix          = "acctestaks230519074450821469"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_DS2_v2"
+  }
+
+  network_profile {
+    network_plugin     = "kubenet"
+    dns_service_ip     = "10.1.1.10"
+    docker_bridge_cidr = "172.18.0.1/16"
+    service_cidrs      = ["10.1.1.0/24", "2002::1234:abcd:ffff:c0a8:101/120"]
+    ip_versions        = ["IPv4", "IPv6"]
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+}

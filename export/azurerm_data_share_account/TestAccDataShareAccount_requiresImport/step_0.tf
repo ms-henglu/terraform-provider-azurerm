@@ -1,0 +1,20 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-datashare-230519074633379234"
+  location = "West Europe"
+}
+
+
+resource "azurerm_data_share_account" "test" {
+  name                = "acctest-DSA-230519074633379234"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  identity {
+    type = "SystemAssigned"
+  }
+}

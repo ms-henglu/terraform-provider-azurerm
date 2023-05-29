@@ -219,14 +219,15 @@ resource "azurerm_machine_learning_compute_cluster" "test" {
     type = "SystemAssigned"
   }
 
-  node_public_ip_enabled    = true
+  node_public_ip_enabled    = false
   ssh_public_access_enabled = false
   ssh {
     admin_username = "adminuser"
     key_value      = var.ssh_key
   }
   depends_on = [
-    azurerm_subnet_network_security_group_association.test
+    azurerm_subnet_network_security_group_association.test,
+    azurerm_private_endpoint.test,
   ]
 }
 `, template, data.RandomIntOfLength(8))
@@ -441,22 +442,22 @@ provider "azurerm" {
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_resource_group" "test" {
-  name     = "acctestRG-ml-%[1]d"
-  location = "%[2]s"
+  name     = "acctestRG-ml-%[2]d"
+  location = "%[1]s"
   tags = {
     "stage" = "test"
   }
 }
 
 resource "azurerm_application_insights" "test" {
-  name                = "acctestai-%[1]d"
+  name                = "acctestai-%[2]d"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
   application_type    = "web"
 }
 
 resource "azurerm_key_vault" "test" {
-  name                = "acctestvault%[3]d"
+  name                = "acctestvault%[2]d"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
@@ -467,7 +468,7 @@ resource "azurerm_key_vault" "test" {
 }
 
 resource "azurerm_storage_account" "test" {
-  name                     = "acctestsa%[4]d"
+  name                     = "acctestsa%[2]d"
   location                 = azurerm_resource_group.test.location
   resource_group_name      = azurerm_resource_group.test.name
   account_tier             = "Standard"
@@ -475,7 +476,7 @@ resource "azurerm_storage_account" "test" {
 }
 
 resource "azurerm_machine_learning_workspace" "test" {
-  name                    = "acctest-MLW%[5]d"
+  name                    = "acctest-MLW%[2]d"
   location                = azurerm_resource_group.test.location
   resource_group_name     = azurerm_resource_group.test.name
   application_insights_id = azurerm_application_insights.test.id
@@ -487,22 +488,51 @@ resource "azurerm_machine_learning_workspace" "test" {
   }
 }
 
+resource "azurerm_private_dns_zone" "test" {
+  name                = "privatelink.api.azureml.ms"
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "test" {
+  name                  = "test-vlink"
+  resource_group_name   = azurerm_resource_group.test.name
+  private_dns_zone_name = azurerm_private_dns_zone.test.name
+  virtual_network_id    = azurerm_virtual_network.test.id
+}
+
+resource "azurerm_private_endpoint" "test" {
+  name                = "test-pe-%[2]d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  subnet_id           = azurerm_subnet.test.id
+  private_service_connection {
+    name                           = "test-mlworkspace-%[2]d"
+    private_connection_resource_id = azurerm_machine_learning_workspace.test.id
+    subresource_names              = ["amlworkspace"]
+    is_manual_connection           = false
+  }
+  private_dns_zone_group {
+    name                 = "test"
+    private_dns_zone_ids = [azurerm_private_dns_zone.test.id]
+  }
+}
+
 resource "azurerm_virtual_network" "test" {
-  name                = "acctestvirtnet%[6]d"
+  name                = "acctestvirtnet%[2]d"
   address_space       = ["10.1.0.0/16"]
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
 }
 
 resource "azurerm_subnet" "test" {
-  name                 = "acctestsubnet%[7]d"
+  name                 = "acctestsubnet%[2]d"
   resource_group_name  = azurerm_resource_group.test.name
   virtual_network_name = azurerm_virtual_network.test.name
   address_prefixes     = ["10.1.0.0/24"]
 }
 
 resource "azurerm_network_security_group" "test" {
-  name                = "test-nsg-%d"
+  name                = "test-nsg-%[2]d"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
   security_rule {
@@ -522,7 +552,5 @@ resource "azurerm_subnet_network_security_group_association" "test" {
   subnet_id                 = azurerm_subnet.test.id
   network_security_group_id = azurerm_network_security_group.test.id
 }
-`, data.RandomInteger, data.Locations.Primary,
-		data.RandomIntOfLength(12), data.RandomIntOfLength(15), data.RandomIntOfLength(16),
-		data.RandomInteger, data.RandomInteger, data.RandomInteger, data.RandomInteger, data.RandomInteger)
+`, data.Locations.Primary, data.RandomIntOfLength(12))
 }

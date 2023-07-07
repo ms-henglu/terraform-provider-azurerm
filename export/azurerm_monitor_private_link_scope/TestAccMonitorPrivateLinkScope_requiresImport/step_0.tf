@@ -1,0 +1,16 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-pls-230707004346059715"
+  location = "West Europe"
+}
+
+
+resource "azurerm_monitor_private_link_scope" "test" {
+  name                = "acctest-ampls-230707004346059715"
+  resource_group_name = azurerm_resource_group.test.name
+}

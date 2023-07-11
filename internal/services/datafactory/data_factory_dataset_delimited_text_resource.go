@@ -354,9 +354,7 @@ func resourceDataFactoryDatasetDelimitedTextCreateUpdate(d *pluginsdk.ResourceDa
 		delimited_textDatasetProperties.ColumnDelimiter = v
 	}
 
-	if v, ok := d.Get("row_delimiter").(string); ok {
-		delimited_textDatasetProperties.RowDelimiter = v
-	}
+	delimited_textDatasetProperties.RowDelimiter = d.Get("row_delimiter").(string)
 
 	if v, ok := d.Get("quote_character").(string); ok {
 		delimited_textDatasetProperties.QuoteChar = v

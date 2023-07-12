@@ -1279,7 +1279,6 @@ func resourceKubernetesCluster() *pluginsdk.Resource {
 				Type:     pluginsdk.TypeBool,
 				Optional: true,
 				Default:  true,
-				ForceNew: true,
 			},
 
 			"role_based_access_control_enabled": {
@@ -2114,6 +2113,16 @@ func resourceKubernetesClusterUpdate(d *pluginsdk.ResourceData, meta interface{}
 			existing.Model.Properties.NetworkProfile.NatGatewayProfile = &natGatewayProfile
 		}
 	}
+
+	if d.HasChange("public_network_access_enabled") {
+		updateCluster = true
+		publicNetworkAccess := managedclusters.PublicNetworkAccessEnabled
+		if !d.Get("public_network_access_enabled").(bool) {
+			publicNetworkAccess = managedclusters.PublicNetworkAccessDisabled
+		}
+		existing.Model.Properties.PublicNetworkAccess = utils.ToPtr(publicNetworkAccess)
+	}
+
 	if d.HasChange("service_mesh_profile") {
 		updateCluster = true
 		if serviceMeshProfile := expandKubernetesClusterServiceMeshProfile(d.Get("service_mesh_profile").([]interface{}), existing.Model.Properties.ServiceMeshProfile); serviceMeshProfile != nil {

@@ -3462,12 +3462,6 @@ resource "azurerm_kubernetes_cluster" "test" {
 }
 
 func (KubernetesClusterResource) publicNetworkAccess(data acceptance.TestData, enabled bool) string {
-	authorizedIPConfig := ""
-	if !enabled {
-		authorizedIPConfig = `api_server_access_profile {
-	authorized_ip_ranges = ["0.0.0.0/32"]
-  }`
-	}
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -3490,9 +3484,8 @@ resource "azurerm_kubernetes_cluster" "test" {
     type = "SystemAssigned"
   }
   public_network_access_enabled = %t
-  %s
 }
-`, data.RandomInteger, data.Locations.Primary, data.RandomInteger, data.RandomInteger, enabled, authorizedIPConfig)
+`, data.RandomInteger, data.Locations.Primary, data.RandomInteger, data.RandomInteger, enabled)
 }
 
 func (KubernetesClusterResource) ebpfDataPlane(data acceptance.TestData) string {

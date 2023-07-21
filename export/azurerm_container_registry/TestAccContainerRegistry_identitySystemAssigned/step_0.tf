@@ -1,0 +1,21 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-acr-230721011402383762"
+  location = "West Europe"
+}
+
+resource "azurerm_container_registry" "test" {
+  name                = "testacccr230721011402383762"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Premium"
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+

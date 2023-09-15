@@ -1,0 +1,137 @@
+
+
+locals {
+  vm_name = "acctvm23"
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-230915023108578948"
+  location = "West Europe"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctestnw-230915023108578948"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "internal"
+  resource_group_name  = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefixes     = ["10.0.2.0/24"]
+}
+
+
+resource "azurerm_public_ip" "test" {
+  count = 2
+
+  name                    = "acctestpip${count.index}-230915023108578948"
+  location                = azurerm_resource_group.test.location
+  resource_group_name     = azurerm_resource_group.test.name
+  allocation_method       = count.index == 0 ? "Dynamic" : "Static"
+  idle_timeout_in_minutes = 4
+  sku                     = count.index == 0 ? "Basic" : "Standard"
+}
+
+resource "azurerm_lb" "test" {
+  count = 2
+
+  name                = "acctestlb${count.index}-230915023108578948"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  sku                 = count.index == 0 ? "Basic" : "Standard"
+
+  frontend_ip_configuration {
+    name                 = "internal"
+    public_ip_address_id = azurerm_public_ip.test[count.index].id
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "test" {
+  count = 2
+
+  name            = "test${count.index}"
+  loadbalancer_id = azurerm_lb.test[count.index].id
+}
+
+resource "azurerm_lb_nat_pool" "test" {
+  count = 2
+
+  name                           = "test${count.index}"
+  resource_group_name            = azurerm_resource_group.test.name
+  loadbalancer_id                = azurerm_lb.test[count.index].id
+  frontend_ip_configuration_name = "internal"
+  protocol                       = "Tcp"
+  frontend_port_start            = 80
+  frontend_port_end              = 81
+  backend_port                   = 8080
+}
+
+resource "azurerm_lb_probe" "test" {
+  count = 2
+
+  loadbalancer_id = azurerm_lb.test[count.index].id
+  name            = "acctest-lb-probe${count.index}"
+  port            = 22
+  protocol        = "Tcp"
+}
+
+resource "azurerm_lb_rule" "test" {
+  count = 2
+
+  name                           = "AccTestLBRule${count.index}"
+  loadbalancer_id                = azurerm_lb.test[count.index].id
+  probe_id                       = azurerm_lb_probe.test[count.index].id
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.test[count.index].id]
+  frontend_ip_configuration_name = "internal"
+  protocol                       = "Tcp"
+  frontend_port                  = 22
+  backend_port                   = 22
+}
+
+resource "azurerm_windows_virtual_machine_scale_set" "test" {
+  name                = local.vm_name
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  health_probe_id     = false ? azurerm_lb_probe.test[1].id : azurerm_lb_probe.test[0].id
+
+  source_image_reference {
+    publisher = "MicrosoftWindowsServer"
+    offer     = "WindowsServer"
+    sku       = "2019-Datacenter"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  data_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+    disk_size_gb         = 10
+    lun                  = 10
+  }
+
+  network_interface {
+    name    = "example"
+    primary = true
+
+    ip_configuration {
+      name                                   = "internal"
+      primary                                = true
+      subnet_id                              = azurerm_subnet.test.id
+      load_balancer_backend_address_pool_ids = false ? [azurerm_lb_backend_address_pool.test[1].id] : [azurerm_lb_backend_address_pool.test[0].id]
+      load_balancer_inbound_nat_rules_ids    = false ? [azurerm_lb_nat_pool.test[1].id] : [azurerm_lb_nat_pool.test[0].id]
+    }
+  }
+
+  depends_on = [azurerm_lb_rule.test]
+}

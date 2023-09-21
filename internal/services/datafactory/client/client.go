@@ -8,6 +8,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/datafactory/mgmt/2018-06-01/datafactory" // nolint: staticcheck
 	"github.com/hashicorp/go-azure-sdk/resource-manager/datafactory/2018-06-01/factories"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/datafactory/2018-06-01/globalparameters"
 	"github.com/hashicorp/go-azure-sdk/resource-manager/datafactory/2018-06-01/managedprivateendpoints"
 	"github.com/hashicorp/go-azure-sdk/resource-manager/datafactory/2018-06-01/managedvirtualnetworks"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/common"
@@ -15,6 +16,7 @@ import (
 
 type Client struct {
 	Factories               *factories.FactoriesClient
+	GlobalParameters        *globalparameters.GlobalParametersClient
 	ManagedPrivateEndpoints *managedprivateendpoints.ManagedPrivateEndpointsClient
 	ManagedVirtualNetworks  *managedvirtualnetworks.ManagedVirtualNetworksClient
 
@@ -33,6 +35,12 @@ func NewClient(o *common.ClientOptions) (*Client, error) {
 		return nil, fmt.Errorf("building Factories client: %+v", err)
 	}
 	o.Configure(factoriesClient.Client, o.Authorizers.ResourceManager)
+
+	globalParametersClient, err := globalparameters.NewGlobalParametersClientWithBaseURI(o.Environment.ResourceManager)
+	if err != nil {
+		return nil, fmt.Errorf("building GlobalParameters client: %+v", err)
+	}
+	o.Configure(globalParametersClient.Client, o.Authorizers.ResourceManager)
 
 	managedPrivateEndpointsClient, err := managedprivateendpoints.NewManagedPrivateEndpointsClientWithBaseURI(o.Environment.ResourceManager)
 	if err != nil {
@@ -67,6 +75,7 @@ func NewClient(o *common.ClientOptions) (*Client, error) {
 
 	return &Client{
 		Factories:               factoriesClient,
+		GlobalParameters:        globalParametersClient,
 		ManagedPrivateEndpoints: managedPrivateEndpointsClient,
 		ManagedVirtualNetworks:  managedVirtualNetworksClient,
 

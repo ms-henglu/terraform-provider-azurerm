@@ -1,0 +1,59 @@
+
+provider "azurerm" {
+  features {}
+}
+			
+resource "azurerm_resource_group" "test" {
+  name     = "acctest-rg-230922061646684566"
+  location = "West Europe"
+}
+
+resource "azurerm_new_relic_monitor" "test" {
+  name                = "acctest-nrm-230922061646684566"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  plan {
+    effective_date = "2023-09-25T00:00:00Z"
+  }
+
+  user {
+    email        = "f0ff47c3-3aed-45b0-b239-260d9625045a@example.com"
+    first_name   = "first"
+    last_name    = "last"
+    phone_number = "123456"
+  }
+}
+
+
+resource "azurerm_new_relic_tag_rule" "test" {
+  monitor_id                         = azurerm_new_relic_monitor.test.id
+  azure_active_directory_log_enabled = true
+  activity_log_enabled               = true
+  metric_enabled                     = true
+  subscription_log_enabled           = true
+
+  log_tag_filter {
+    name   = "log1"
+    action = "Include"
+    value  = "log1"
+  }
+
+  log_tag_filter {
+    name   = "log2"
+    action = "Exclude"
+    value  = ""
+  }
+
+  metric_tag_filter {
+    name   = "metric1"
+    action = "Include"
+    value  = "metric1"
+  }
+
+  metric_tag_filter {
+    name   = "metric2"
+    action = "Exclude"
+    value  = ""
+  }
+}

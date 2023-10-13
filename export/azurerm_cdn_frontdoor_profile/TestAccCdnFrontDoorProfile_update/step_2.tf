@@ -1,0 +1,23 @@
+
+provider "azurerm" {
+  features {}
+}
+
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-cdn-afdx-231013043043804036"
+  location = "West Europe"
+}
+
+
+resource "azurerm_cdn_frontdoor_profile" "test" {
+  name                = "acctestprofile-231013043043804036"
+  resource_group_name = azurerm_resource_group.test.name
+  sku_name            = "Premium_AzureFrontDoor"
+
+  response_timeout_seconds = 120
+
+  tags = {
+    ENV = "Production"
+  }
+}

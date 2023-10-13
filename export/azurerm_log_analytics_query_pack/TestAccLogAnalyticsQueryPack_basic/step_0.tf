@@ -1,0 +1,17 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-LA-231013043726002142"
+  location = "West Europe"
+}
+
+
+resource "azurerm_log_analytics_query_pack" "test" {
+  name                = "acctestlaqp-231013043726002142"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}

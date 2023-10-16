@@ -1,0 +1,64 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-231016034430999804"
+  location = "West Europe"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctestvirtnet-231016034430999804"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  address_space       = ["10.1.0.0/16"]
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctestsubnet-231016034430999804"
+  resource_group_name  = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefixes     = ["10.1.0.0/24"]
+
+  delegation {
+    name = "acctestdelegation-231016034430999804"
+
+    service_delegation {
+      name    = "Microsoft.ContainerInstance/containerGroups"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
+}
+
+resource "azurerm_network_profile" "test" {
+  name                = "acctestnetprofile-231016034430999804"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  container_network_interface {
+    name = "acctesteth-231016034430999804"
+
+    ip_configuration {
+      name      = "acctestipconfig-231016034430999804"
+      subnet_id = azurerm_subnet.test.id
+    }
+  }
+}
+
+
+resource "azurerm_network_profile" "import" {
+  name                = azurerm_network_profile.test.name
+  location            = azurerm_network_profile.test.location
+  resource_group_name = azurerm_network_profile.test.resource_group_name
+
+  container_network_interface {
+    name = azurerm_network_profile.test.container_network_interface[0].name
+
+    ip_configuration {
+      name      = azurerm_network_profile.test.container_network_interface[0].ip_configuration[0].name
+      subnet_id = azurerm_subnet.test.id
+    }
+  }
+}

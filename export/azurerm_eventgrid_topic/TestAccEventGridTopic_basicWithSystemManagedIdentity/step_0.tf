@@ -1,0 +1,19 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-231020041053053759"
+  location = "West Europe"
+}
+
+resource "azurerm_eventgrid_topic" "test" {
+  name                = "acctesteg-231020041053053759"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  identity {
+    type = "SystemAssigned"
+  }
+}

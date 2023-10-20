@@ -1,0 +1,35 @@
+
+provider "azurerm" {
+  features {}
+}
+
+variable "hyper_v_generation" {
+  default = "V1"
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-231020040746247549"
+  location = "West Europe"
+}
+
+resource "azurerm_shared_image_gallery" "test" {
+  name                = "acctestsig231020040746247549"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}
+
+resource "azurerm_shared_image" "test" {
+  name                = "acctestimg231020040746247549"
+  gallery_name        = azurerm_shared_image_gallery.test.name
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  os_type             = "Linux"
+  specialized         = true
+  hyper_v_generation  = var.hyper_v_generation != "" ? var.hyper_v_generation : null
+
+  identifier {
+    publisher = "AccTesPublisher231020040746247549"
+    offer     = "AccTesOffer231020040746247549"
+    sku       = "AccTesSku231020040746247549"
+  }
+}

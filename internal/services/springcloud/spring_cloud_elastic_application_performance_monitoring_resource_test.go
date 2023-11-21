@@ -44,6 +44,48 @@ func TestAccSpringCloudElasticApplicationPerformanceMonitoringPerformanceMonitor
 	})
 }
 
+func TestAccSpringCloudElasticApplicationPerformanceMonitoringPerformanceMonitoring_complete(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_elastic_application_performance_monitoring", "test")
+	r := SpringCloudElasticApplicationPerformanceMonitoringResource{}
+	data.ResourceTest(t, r, []acceptance.TestStep{
+		{
+			Config: r.complete(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+	})
+}
+
+func TestAccSpringCloudElasticApplicationPerformanceMonitoringPerformanceMonitoring_update(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_spring_cloud_elastic_application_performance_monitoring", "test")
+	r := SpringCloudElasticApplicationPerformanceMonitoringResource{}
+	data.ResourceTest(t, r, []acceptance.TestStep{
+		{
+			Config: r.basic(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+		{
+			Config: r.complete(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+		{
+			Config: r.basic(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+	})
+}
+
 func (r SpringCloudElasticApplicationPerformanceMonitoringResource) Exists(ctx context.Context, client *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
 	id, err := appplatform.ParseApmID(state.ID)
 	if err != nil {
@@ -107,4 +149,20 @@ resource "azurerm_spring_cloud_elastic_application_performance_monitoring" "impo
   server_url              = "http://127.0.0.1:8200"
 }
 `, config)
+}
+
+func (r SpringCloudElasticApplicationPerformanceMonitoringResource) complete(data acceptance.TestData) string {
+	template := r.template(data)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_spring_cloud_elastic_application_performance_monitoring" "test" {
+  name                    = "acctest-apm-%[2]d"
+  spring_cloud_service_id = azurerm_spring_cloud_service.test.id
+  application_packages    = "org.example,org.another.example"
+  service_name            = "test-service-name"
+  server_url              = "http://127.0.0.1:8200"
+  globally_enabled        = true
+}
+`, template, data.RandomInteger)
 }

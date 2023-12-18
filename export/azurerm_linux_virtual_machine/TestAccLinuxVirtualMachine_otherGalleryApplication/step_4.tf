@@ -1,0 +1,168 @@
+
+
+
+
+
+# note: whilst these aren't used in all tests, it saves us redefining these everywhere
+locals {
+  first_public_key  = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+wWK73dCr+jgQOAxNsHAnNNNMEMWOHYEccp6wJm2gotpr9katuF/ZAdou5AaW1C61slRkHRkpRRX9FA9CYBiitZgvCCz+3nWNN7l/Up54Zps/pHWGZLHNJZRYyAB6j5yVLMVHIHriY49d/GZTZVNB8GoJv9Gakwc/fuEZYYl4YDFiGMBP///TzlI4jhiJzjKnEvqPFki5p2ZRJqcbCiF4pJrxUQR/RXqVFQdbRLZgYfJ8xGB878RENq3yQ39d8dVOkq4edbkzwcUmwwwkYVPIoDGsYLaRHnG+To7FvMeyO7xDVQkMKzopTQV8AuKpyvpqu0a9pWOMaiCyDytO7GGN you@me.com"
+  second_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC0/NDMj2wG6bSa6jbn6E3LYlUsYiWMp1CQ2sGAijPALW6OrSu30lz7nKpoh8Qdw7/A4nAJgweI5Oiiw5/BOaGENM70Go+VM8LQMSxJ4S7/8MIJEZQp5HcJZ7XDTcEwruknrd8mllEfGyFzPvJOx6QAQocFhXBW6+AlhM3gn/dvV5vdrO8ihjET2GoDUqXPYC57ZuY+/Fz6W3KV8V97BvNUhpY5yQrP5VpnyvvXNFQtzDfClTvZFPuoHQi3/KYPi6O0FSD74vo8JOBZZY09boInPejkm9fvHQqfh0bnN7B6XJoUwC1Qprrx+XIy7ust5AEn5XL7d4lOvcR14MxDDKEp you@me.com"
+}
+
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-231218071435488647"
+  location = "West Europe"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctestnw-231218071435488647"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "internal"
+  resource_group_name  = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefixes     = ["10.0.2.0/24"]
+}
+
+
+resource "azurerm_network_interface" "test" {
+  name                = "acctestnic-231218071435488647"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.test.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+
+resource "azurerm_storage_account" "test" {
+  name                     = "accteststr3b4ij"
+  resource_group_name      = azurerm_resource_group.test.name
+  location                 = azurerm_resource_group.test.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_storage_container" "test" {
+  name                  = "test"
+  storage_account_name  = azurerm_storage_account.test.name
+  container_access_type = "blob"
+}
+
+resource "azurerm_storage_blob" "test" {
+  name                   = "script"
+  storage_account_name   = azurerm_storage_account.test.name
+  storage_container_name = azurerm_storage_container.test.name
+  type                   = "Page"
+  size                   = 512
+}
+
+resource "azurerm_storage_blob" "test2" {
+  name                   = "script2"
+  storage_account_name   = azurerm_storage_account.test.name
+  storage_container_name = azurerm_storage_container.test.name
+  type                   = "Page"
+  size                   = 512
+}
+
+resource "azurerm_shared_image_gallery" "test" {
+  name                = "acctestsig231218071435488647"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}
+
+resource "azurerm_gallery_application" "test" {
+  name              = "acctest-app-231218071435488647"
+  gallery_id        = azurerm_shared_image_gallery.test.id
+  location          = azurerm_shared_image_gallery.test.location
+  supported_os_type = "Linux"
+}
+
+resource "azurerm_gallery_application_version" "test" {
+  name                   = "0.0.1"
+  gallery_application_id = azurerm_gallery_application.test.id
+  location               = azurerm_gallery_application.test.location
+
+  source {
+    media_link                 = azurerm_storage_blob.test.id
+    default_configuration_link = azurerm_storage_blob.test.id
+  }
+
+  manage_action {
+    install = "[install command]"
+    remove  = "[remove command]"
+  }
+
+  target_region {
+    name                   = azurerm_gallery_application.test.location
+    regional_replica_count = 1
+    storage_account_type   = "Premium_LRS"
+  }
+}
+
+resource "azurerm_gallery_application" "test2" {
+  name              = "acctest-app2-231218071435488647"
+  gallery_id        = azurerm_shared_image_gallery.test.id
+  location          = azurerm_shared_image_gallery.test.location
+  supported_os_type = "Linux"
+}
+
+
+resource "azurerm_gallery_application_version" "test2" {
+  name                   = "0.0.1"
+  gallery_application_id = azurerm_gallery_application.test2.id
+  location               = azurerm_gallery_application.test2.location
+
+  source {
+    media_link                 = azurerm_storage_blob.test.id
+    default_configuration_link = azurerm_storage_blob.test.id
+  }
+
+  manage_action {
+    install = "[install command]"
+    remove  = "[remove command]"
+  }
+
+  target_region {
+    name                   = azurerm_gallery_application.test2.location
+    regional_replica_count = 1
+    storage_account_type   = "Premium_LRS"
+  }
+}
+
+
+resource "azurerm_linux_virtual_machine" "test" {
+  name                = "acctestVM-231218071435488647"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  size                = "Standard_F2"
+  admin_username      = "adminuser"
+  network_interface_ids = [
+    azurerm_network_interface.test.id,
+  ]
+
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = local.first_public_key
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
+}

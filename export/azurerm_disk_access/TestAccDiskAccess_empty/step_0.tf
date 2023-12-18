@@ -1,0 +1,22 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-231218071435443088"
+  location = "West Europe"
+}
+
+resource "azurerm_disk_access" "test" {
+  name                = "acctestda-231218071435443088"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  tags = {
+    environment = "acctest"
+    cost-center = "ops"
+  }
+}
+
+	

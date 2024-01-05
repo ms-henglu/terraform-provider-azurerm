@@ -1,0 +1,75 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-240105060925986412"
+  location = "West Europe"
+}
+
+resource "azurerm_storage_account" "test" {
+  name                     = "acctestsa06yau"
+  resource_group_name      = azurerm_resource_group.test.name
+  location                 = azurerm_resource_group.test.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_storage_container" "test" {
+  name                  = "test"
+  storage_account_name  = azurerm_storage_account.test.name
+  container_access_type = "private"
+}
+
+resource "azurerm_user_assigned_identity" "test" {
+  name                = "acctestuai-240105060925986412"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+}
+
+resource "azurerm_role_assignment" "test_storage_blob_data_contrib_user" {
+  role_definition_name = "Storage Blob Data Contributor"
+  scope                = azurerm_storage_account.test.id
+  principal_id         = azurerm_user_assigned_identity.test.principal_id
+}
+
+resource "azurerm_iothub" "test" {
+  name                = "acctestIoTHub-240105060925986412"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  sku {
+    name     = "S1"
+    capacity = "1"
+  }
+
+  identity {
+    type = "SystemAssigned, UserAssigned"
+    identity_ids = [
+      azurerm_user_assigned_identity.test.id,
+    ]
+  }
+
+  lifecycle {
+    ignore_changes = [
+      file_upload
+    ]
+  }
+}
+
+resource "azurerm_role_assignment" "test_storage_blob_data_contrib_system" {
+  role_definition_name = "Storage Blob Data Contributor"
+  scope                = azurerm_storage_account.test.id
+  principal_id         = azurerm_iothub.test.identity[0].principal_id
+}
+
+
+resource "azurerm_iothub_file_upload" "test" {
+  iothub_id         = azurerm_iothub.test.id
+  connection_string = azurerm_storage_account.test.primary_blob_connection_string
+  container_name    = azurerm_storage_container.test.name
+
+  authentication_type = "keyBased"
+}

@@ -1,0 +1,16 @@
+
+provider "azurerm" {
+  features {
+    app_configuration {
+      purge_soft_delete_on_destroy = false
+      recover_soft_deleted         = false
+    }
+  }
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-appconfig-240112033751748119"
+  location = "West Europe"
+}
+
+

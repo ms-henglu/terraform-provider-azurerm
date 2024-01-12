@@ -1,0 +1,18 @@
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-240112035302312135"
+  location = "West Europe"
+}
+
+
+resource "azurerm_stream_analytics_cluster" "test" {
+  name                = "acctestcluster-240112035302312135"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  streaming_capacity  = 36
+}

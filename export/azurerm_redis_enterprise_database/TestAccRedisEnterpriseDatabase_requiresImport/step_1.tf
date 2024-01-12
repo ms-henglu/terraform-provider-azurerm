@@ -1,0 +1,47 @@
+
+
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-redisEnterprise-240112035042504586"
+  location = "eastus"
+}
+
+resource "azurerm_redis_enterprise_cluster" "test" {
+  name                = "acctest-rec-240112035042504586"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  sku_name = "Enterprise_E20-4"
+}
+resource "azurerm_redis_enterprise_cluster" "test1" {
+  name                = "acctest-rec-240112035042504586"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  sku_name = "Enterprise_E20-4"
+}
+resource "azurerm_redis_enterprise_cluster" "test2" {
+  name                = "acctest-rec-240112035042504586"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
+  sku_name = "Enterprise_E20-4"
+}
+
+
+resource "azurerm_redis_enterprise_database" "test" {
+  name                = "default"
+  resource_group_name = azurerm_resource_group.test.name
+  cluster_id          = azurerm_redis_enterprise_cluster.test.id
+}
+
+
+resource "azurerm_redis_enterprise_database" "import" {
+  name                = azurerm_redis_enterprise_database.test.name
+  resource_group_name = azurerm_redis_enterprise_database.test.resource_group_name
+  cluster_id          = azurerm_redis_enterprise_database.test.cluster_id
+}

@@ -1,0 +1,29 @@
+
+provider "azurerm" {
+  features {}
+}
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-aks-240119021808994282"
+  location = "West Europe"
+}
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks240119021808994282"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  dns_prefix          = "acctestaks240119021808994282"
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2s_v3"
+  }
+  identity {
+    type = "SystemAssigned"
+  }
+}
+resource "azurerm_kubernetes_cluster_node_pool" "test" {
+  name                  = "internal"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.test.id
+  vm_size               = "Standard_D2s_v3"
+  ultra_ssd_enabled     = true
+  zones                 = ["1", "2", "3"]
+}

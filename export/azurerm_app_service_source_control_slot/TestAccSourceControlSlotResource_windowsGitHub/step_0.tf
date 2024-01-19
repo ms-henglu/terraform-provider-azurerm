@@ -1,0 +1,51 @@
+
+provider "azurerm" {
+  features {}
+}
+
+
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-ASSC-240119021457854259"
+  location = "West Europe"
+}
+
+resource "azurerm_service_plan" "test" {
+  name                = "acctestASP-240119021457854259"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  os_type             = "Windows"
+  sku_name            = "S1"
+}
+
+resource "azurerm_windows_web_app" "test" {
+  name                = "acctestWA-240119021457854259"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  service_plan_id     = azurerm_service_plan.test.id
+
+  site_config {}
+}
+
+resource "azurerm_windows_web_app_slot" "test" {
+  name           = "acctestWAS-240119021457854259"
+  app_service_id = azurerm_windows_web_app.test.id
+
+  site_config {}
+}
+
+
+resource azurerm_source_control_token test {
+  type  = "GitHub"
+  token = "ARM_GITHUB_ACCESS_TOKEN"
+}
+
+resource "azurerm_app_service_source_control_slot" "test" {
+  slot_id  = azurerm_windows_web_app_slot.test.id
+  repo_url = "https://github.com/jackofallops/azure-app-service-static-site-tests.git"
+  branch   = "main"
+
+  depends_on = [
+    azurerm_source_control_token.test,
+  ]
+}

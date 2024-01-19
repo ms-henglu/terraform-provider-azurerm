@@ -1,0 +1,27 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-eventhub-240119025039065775"
+  location = "West Europe"
+}
+
+resource "azurerm_eventhub_namespace" "test" {
+  name                = "acctest-EHN-240119025039065775"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  sku = "Standard"
+}
+
+resource "azurerm_eventhub_namespace_authorization_rule" "test" {
+  name                = "acctest-EHN-AR240119025039065775"
+  namespace_name      = azurerm_eventhub_namespace.test.name
+  resource_group_name = azurerm_resource_group.test.name
+
+  listen = false
+  send   = true
+  manage = false
+}

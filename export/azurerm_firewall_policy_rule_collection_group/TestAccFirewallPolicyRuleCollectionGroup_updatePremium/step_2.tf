@@ -1,0 +1,154 @@
+
+provider "azurerm" {
+  features {}
+}
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-fwpolicy-RCG-240119025046829830"
+  location = "West Europe"
+}
+resource "azurerm_firewall_policy" "test" {
+  name                = "acctest-fwpolicy-RCG-240119025046829830"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  dns {
+    proxy_enabled = true
+  }
+}
+resource "azurerm_ip_group" "test_source1" {
+  name                = "acctestIpGroupForFirewallPolicySource1"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  cidrs               = ["1.2.3.4/32", "12.34.56.0/24"]
+}
+
+resource "azurerm_ip_group" "test_source2" {
+  name                = "acctestIpGroupForFirewallPolicySource2"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  cidrs               = ["4.3.2.1/32", "87.65.43.0/24"]
+}
+resource "azurerm_ip_group" "test_destination1" {
+  name                = "acctestIpGroupForFirewallPolicyDest1"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  cidrs               = ["192.168.0.0/25", "192.168.0.192/26"]
+}
+
+resource "azurerm_ip_group" "test_destination2" {
+  name                = "acctestIpGroupForFirewallPolicyDest2"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  cidrs               = ["193.168.0.0/25", "193.168.0.192/26"]
+}
+resource "azurerm_firewall_policy_rule_collection_group" "test" {
+  name               = "acctest-fwpolicy-RCG-240119025046829830"
+  firewall_policy_id = azurerm_firewall_policy.test.id
+  priority           = 500
+  application_rule_collection {
+    name     = "app_rule_collection1"
+    priority = 500
+    action   = "Deny"
+    rule {
+      name        = "app_rule_collection1_rule1"
+      description = "app_rule_collection1_rule1"
+      protocols {
+        type = "Http"
+        port = 80
+      }
+      protocols {
+        type = "Https"
+        port = 443
+      }
+      source_addresses      = ["10.0.0.1"]
+      destination_addresses = ["10.0.0.1"]
+      destination_urls      = ["www.google.com/en"]
+      terminate_tls         = true
+      web_categories        = ["News"]
+      http_headers {
+        name  = "head_foo"
+        value = "value_bar2"
+      }
+      http_headers {
+        name  = "head_bar2"
+        value = "value_bar2"
+      }
+    }
+    rule {
+      name        = "app_rule_collection1_rule2"
+      description = "app_rule_collection1_rule2"
+      protocols {
+        type = "Http"
+        port = 80
+      }
+      source_ip_groups      = [azurerm_ip_group.test_source1.id]
+      destination_addresses = ["10.0.0.1"]
+      destination_fqdns     = ["pluginsdk.io"]
+      terminate_tls         = true
+      web_categories        = ["News"]
+    }
+    rule {
+      name        = "app_rule_collection1_rule3"
+      description = "app_rule_collection1_rule3"
+      protocols {
+        type = "Http"
+        port = 80
+      }
+      protocols {
+        type = "Https"
+        port = 443
+      }
+      source_addresses      = ["10.0.0.1", "10.0.0.2"]
+      destination_addresses = ["10.0.0.1", "10.0.0.2"]
+      destination_urls      = ["www.google.com/en"]
+      terminate_tls         = true
+      web_categories        = ["News"]
+    }
+  }
+  network_rule_collection {
+    name     = "network_rule_collection1"
+    priority = 400
+    action   = "Deny"
+    rule {
+      name                  = "network_rule_collection1_rule1"
+      protocols             = ["TCP", "UDP"]
+      source_addresses      = ["10.0.0.1"]
+      destination_addresses = ["192.168.1.2", "ApiManagement"]
+      destination_ports     = ["80", "1-65535"]
+    }
+    rule {
+      name              = "network_rule_collection1_rule2"
+      protocols         = ["TCP", "UDP"]
+      source_addresses  = ["10.0.0.1", "10.0.0.2"]
+      destination_fqdns = ["time.windows.com"]
+      destination_ports = ["80", "1-65535"]
+    }
+    rule {
+      name                  = "network_rule_collection1_rule3"
+      protocols             = ["TCP"]
+      source_ip_groups      = [azurerm_ip_group.test_source1.id]
+      destination_ip_groups = [azurerm_ip_group.test_destination1.id]
+      destination_ports     = ["80", "1-65535"]
+    }
+    rule {
+      name                  = "network_rule_collection1_rule4"
+      protocols             = ["ICMP"]
+      source_ip_groups      = [azurerm_ip_group.test_source2.id]
+      destination_ip_groups = [azurerm_ip_group.test_destination2.id]
+      destination_ports     = ["*"]
+    }
+  }
+  nat_rule_collection {
+    name     = "nat_rule_collection1"
+    priority = 300
+    action   = "Dnat"
+    rule {
+      name                = "nat_rule_collection1_rule1"
+      protocols           = ["TCP", "UDP"]
+      source_addresses    = ["10.0.0.1", "10.0.0.2"]
+      destination_address = "192.168.1.1"
+      destination_ports   = ["80"]
+      translated_address  = "192.168.0.1"
+      translated_port     = "8080"
+    }
+  }
+}

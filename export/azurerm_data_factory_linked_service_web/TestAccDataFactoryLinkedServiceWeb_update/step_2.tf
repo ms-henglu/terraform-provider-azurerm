@@ -1,0 +1,34 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-df-240119024903042359"
+  location = "West Europe"
+}
+
+resource "azurerm_data_factory" "test" {
+  name                = "acctestdf240119024903042359"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_data_factory_linked_service_web" "test" {
+  name                = "acctestlsweb240119024903042359"
+  data_factory_id     = azurerm_data_factory.test.id
+  authentication_type = "Anonymous"
+  url                 = "http://www.yahoo.com"
+  annotations         = ["test1", "test2"]
+  description         = "Test Description 2"
+
+  parameters = {
+    foo  = "Test1"
+    bar  = "Test2"
+    buzz = "Test3"
+  }
+
+  additional_properties = {
+    foo = "Test1"
+  }
+}

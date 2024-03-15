@@ -1,0 +1,20 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-240315122240629275"
+  location = "West Europe"
+}
+
+resource "azurerm_static_web_app" "test" {
+  name                = "acctestSS-240315122240629275"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  app_settings = {
+    "foo" = "bar"
+    "baz" = "foo"
+  }
+}

@@ -1,0 +1,19 @@
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-240315123545744137"
+  location = "West Europe"
+}
+
+resource "azurerm_monitor_activity_log_alert" "test" {
+  name                = "acctestActivityLogAlert-240315123545744137"
+  resource_group_name = azurerm_resource_group.test.name
+  scopes              = [azurerm_resource_group.test.id]
+
+  criteria {
+    category = "Recommendation"
+  }
+}

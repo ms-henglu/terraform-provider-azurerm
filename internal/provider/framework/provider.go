@@ -5,7 +5,6 @@ package framework
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -525,7 +524,11 @@ func (p *azureRmFrameworkProvider) Resources(_ context.Context) []func() resourc
 	var output []func() resource.Resource
 
 	for _, service := range pluginsdkprovider.SupportedFrameworkServices() {
-		output = append(output, service.FrameworkResources()...)
+		for _, r := range service.FrameworkResources() {
+			output = append(output, func() resource.Resource {
+				return NewResourceWithMoveStateWrapper(r())
+			})
+		}
 	}
 
 	return output

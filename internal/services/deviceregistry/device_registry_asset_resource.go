@@ -47,10 +47,10 @@ type AssetResourceModel struct {
 	DiscoveredAssetRefs          []string               `tfschema:"discovered_asset_refs"`
 	DefaultDatasetsConfiguration string                 `tfschema:"default_datasets_configuration"`
 	DefaultEventsConfiguration   string                 `tfschema:"default_events_configuration"`
-	DefaultTopic                 Topic                  `tfschema:"default_topic"`
+	DefaultTopic                 []Topic                `tfschema:"default_topic"`
 	Datasets                     []Dataset              `tfschema:"datasets"`
 	Events                       []Event                `tfschema:"events"`
-	Status                       AssetStatus            `tfschema:"status"`
+	Status                       []AssetStatus          `tfschema:"status"`
 }
 
 type Topic struct {
@@ -61,7 +61,7 @@ type Topic struct {
 type Dataset struct {
 	Name                 string      `tfschema:"name"`
 	DatasetConfiguration string      `tfschema:"dataset_configuration"`
-	Topic                Topic       `tfschema:"topic"`
+	Topic                []Topic     `tfschema:"topic"`
 	DataPoints           []DataPoint `tfschema:"data_points"`
 }
 
@@ -73,11 +73,11 @@ type DataPoint struct {
 }
 
 type Event struct {
-	Name               string `tfschema:"name"`
-	EventNotifier      string `tfschema:"event_notifier"`
-	ObservabilityMode  string `tfschema:"observability_mode"`
-	EventConfiguration string `tfschema:"event_configuration"`
-	Topic              Topic  `tfschema:"topic"`
+	Name               string  `tfschema:"name"`
+	EventNotifier      string  `tfschema:"event_notifier"`
+	ObservabilityMode  string  `tfschema:"observability_mode"`
+	EventConfiguration string  `tfschema:"event_configuration"`
+	Topic              []Topic `tfschema:"topic"`
 }
 
 type AssetStatus struct {
@@ -93,13 +93,13 @@ type ErrorStatus struct {
 }
 
 type DatasetStatus struct {
-	Name                   string                 `tfschema:"name"`
-	MessageSchemaReference MessageSchemaReference `tfschema:"message_schema_reference"`
+	Name                   string                   `tfschema:"name"`
+	MessageSchemaReference []MessageSchemaReference `tfschema:"message_schema_reference"`
 }
 
 type EventStatus struct {
-	Name                   string                 `tfschema:"name"`
-	MessageSchemaReference MessageSchemaReference `tfschema:"message_schema_reference"`
+	Name                   string                   `tfschema:"name"`
+	MessageSchemaReference []MessageSchemaReference `tfschema:"message_schema_reference"`
 }
 
 type MessageSchemaReference struct {
@@ -185,6 +185,7 @@ func (AssetResource) Arguments() map[string]*pluginsdk.Schema {
 		"attributes": {
 			Type:     pluginsdk.TypeMap,
 			Optional: true,
+			Elem:     &pluginsdk.Schema{Type: pluginsdk.TypeString},
 		},
 		"discovered_asset_refs": {
 			Type:     pluginsdk.TypeList,
@@ -202,25 +203,27 @@ func (AssetResource) Arguments() map[string]*pluginsdk.Schema {
 			Optional: true,
 		},
 		"default_topic": {
-			Type:     pluginsdk.TypeMap,
+			Type:     pluginsdk.TypeList,
 			Optional: true,
-			Elem: map[string]*pluginsdk.Schema{
-				"path": {
-					Type:     pluginsdk.TypeString,
-					Required: true,
-				},
-				"retain": {
-					Type:     pluginsdk.TypeString,
-					Optional: true,
+			MaxItems: 1,
+			Elem: &pluginsdk.Resource{
+				Schema: map[string]*pluginsdk.Schema{
+					"path": {
+						Type:     pluginsdk.TypeString,
+						Required: true,
+					},
+					"retain": {
+						Type:     pluginsdk.TypeString,
+						Optional: true,
+					},
 				},
 			},
 		},
 		"datasets": {
 			Type:     pluginsdk.TypeList,
 			Optional: true,
-			Elem: &pluginsdk.Schema{
-				Type: pluginsdk.TypeMap,
-				Elem: map[string]*pluginsdk.Schema{
+			Elem: &pluginsdk.Resource{
+				Schema: map[string]*pluginsdk.Schema{
 					"name": {
 						Type:     pluginsdk.TypeString,
 						Required: true,
@@ -230,25 +233,27 @@ func (AssetResource) Arguments() map[string]*pluginsdk.Schema {
 						Optional: true,
 					},
 					"topic": {
-						Type:     pluginsdk.TypeMap,
+						Type:     pluginsdk.TypeList,
 						Optional: true,
-						Elem: map[string]*pluginsdk.Schema{
-							"path": {
-								Type:     pluginsdk.TypeString,
-								Required: true,
-							},
-							"retain": {
-								Type:     pluginsdk.TypeString,
-								Optional: true,
+						MaxItems: 1,
+						Elem: &pluginsdk.Resource{
+							Schema: map[string]*pluginsdk.Schema{
+								"path": {
+									Type:     pluginsdk.TypeString,
+									Required: true,
+								},
+								"retain": {
+									Type:     pluginsdk.TypeString,
+									Optional: true,
+								},
 							},
 						},
 					},
 					"data_points": {
 						Type:     pluginsdk.TypeList,
 						Optional: true,
-						Elem: &pluginsdk.Schema{
-							Type: pluginsdk.TypeMap,
-							Elem: map[string]*pluginsdk.Schema{
+						Elem: &pluginsdk.Resource{
+							Schema: map[string]*pluginsdk.Schema{
 								"name": {
 									Type:     pluginsdk.TypeString,
 									Required: true,
@@ -276,9 +281,8 @@ func (AssetResource) Arguments() map[string]*pluginsdk.Schema {
 		"events": {
 			Type:     pluginsdk.TypeList,
 			Optional: true,
-			Elem: &pluginsdk.Schema{
-				Type: pluginsdk.TypeMap,
-				Elem: map[string]*pluginsdk.Schema{
+			Elem: &pluginsdk.Resource{
+				Schema: map[string]*pluginsdk.Schema{
 					"name": {
 						Type:     pluginsdk.TypeString,
 						Required: true,
@@ -298,16 +302,19 @@ func (AssetResource) Arguments() map[string]*pluginsdk.Schema {
 						Optional: true,
 					},
 					"topic": {
-						Type:     pluginsdk.TypeMap,
+						Type:     pluginsdk.TypeList,
 						Optional: true,
-						Elem: map[string]*pluginsdk.Schema{
-							"path": {
-								Type:     pluginsdk.TypeString,
-								Required: true,
-							},
-							"retain": {
-								Type:     pluginsdk.TypeString,
-								Optional: true,
+						MaxItems: 1,
+						Elem: &pluginsdk.Resource{
+							Schema: map[string]*pluginsdk.Schema{
+								"path": {
+									Type:     pluginsdk.TypeString,
+									Required: true,
+								},
+								"retain": {
+									Type:     pluginsdk.TypeString,
+									Optional: true,
+								},
 							},
 						},
 					},
@@ -336,86 +343,89 @@ func (AssetResource) Attributes() map[string]*pluginsdk.Schema {
 			Computed: true,
 		},
 		"status": {
-			Type:     pluginsdk.TypeMap,
+			Type:     pluginsdk.TypeList,
 			Computed: true,
-			Elem: map[string]*pluginsdk.Schema{
-				"errors": {
-					Type:     pluginsdk.TypeList,
-					Computed: true,
-					Elem: &pluginsdk.Schema{
-						Type: pluginsdk.TypeMap,
-						Elem: map[string]*pluginsdk.Schema{
-							"code": {
-								Type:     pluginsdk.TypeString,
-								Computed: true,
-							},
-							"message": {
-								Type:     pluginsdk.TypeString,
-								Computed: true,
+			Elem: &pluginsdk.Resource{
+				Schema: map[string]*pluginsdk.Schema{
+					"errors": {
+						Type:     pluginsdk.TypeList,
+						Computed: true,
+						Elem: &pluginsdk.Resource{
+							Schema: map[string]*pluginsdk.Schema{
+								"code": {
+									Type:     pluginsdk.TypeString,
+									Computed: true,
+								},
+								"message": {
+									Type:     pluginsdk.TypeString,
+									Computed: true,
+								},
 							},
 						},
 					},
-				},
-				"version": {
-					Type:     pluginsdk.TypeInt,
-					Computed: true,
-				},
-				"datasets": {
-					Type:     pluginsdk.TypeList,
-					Computed: true,
-					Elem: &pluginsdk.Schema{
-						Type: pluginsdk.TypeMap,
-						Elem: map[string]*pluginsdk.Schema{
-							"name": {
-								Type:     pluginsdk.TypeString,
-								Computed: true,
-							},
-							"message_schema_reference": {
-								Type:     pluginsdk.TypeMap,
-								Computed: true,
-								Elem: map[string]*pluginsdk.Schema{
-									"schema_registry_namespace": {
-										Type:     pluginsdk.TypeString,
-										Computed: true,
-									},
-									"schema_name": {
-										Type:     pluginsdk.TypeString,
-										Computed: true,
-									},
-									"schema_version": {
-										Type:     pluginsdk.TypeString,
-										Computed: true,
+					"version": {
+						Type:     pluginsdk.TypeInt,
+						Computed: true,
+					},
+					"datasets": {
+						Type:     pluginsdk.TypeList,
+						Computed: true,
+						Elem: &pluginsdk.Resource{
+							Schema: map[string]*pluginsdk.Schema{
+								"name": {
+									Type:     pluginsdk.TypeString,
+									Computed: true,
+								},
+								"message_schema_reference": {
+									Type:     pluginsdk.TypeList,
+									Computed: true,
+									Elem: &pluginsdk.Resource{
+										Schema: map[string]*pluginsdk.Schema{
+											"schema_registry_namespace": {
+												Type:     pluginsdk.TypeString,
+												Computed: true,
+											},
+											"schema_name": {
+												Type:     pluginsdk.TypeString,
+												Computed: true,
+											},
+											"schema_version": {
+												Type:     pluginsdk.TypeString,
+												Computed: true,
+											},
+										},
 									},
 								},
 							},
 						},
 					},
-				},
-				"events": {
-					Type:     pluginsdk.TypeList,
-					Computed: true,
-					Elem: &pluginsdk.Schema{
-						Type: pluginsdk.TypeMap,
-						Elem: map[string]*pluginsdk.Schema{
-							"name": {
-								Type:     pluginsdk.TypeString,
-								Computed: true,
-							},
-							"message_schema_reference": {
-								Type:     pluginsdk.TypeMap,
-								Computed: true,
-								Elem: map[string]*pluginsdk.Schema{
-									"schema_registry_namespace": {
-										Type:     pluginsdk.TypeString,
-										Computed: true,
-									},
-									"schema_name": {
-										Type:     pluginsdk.TypeString,
-										Computed: true,
-									},
-									"schema_version": {
-										Type:     pluginsdk.TypeString,
-										Computed: true,
+					"events": {
+						Type:     pluginsdk.TypeList,
+						Computed: true,
+						Elem: &pluginsdk.Resource{
+							Schema: map[string]*pluginsdk.Schema{
+								"name": {
+									Type:     pluginsdk.TypeString,
+									Computed: true,
+								},
+								"message_schema_reference": {
+									Type:     pluginsdk.TypeList,
+									Computed: true,
+									Elem: &pluginsdk.Resource{
+										Schema: map[string]*pluginsdk.Schema{
+											"schema_registry_namespace": {
+												Type:     pluginsdk.TypeString,
+												Computed: true,
+											},
+											"schema_name": {
+												Type:     pluginsdk.TypeString,
+												Computed: true,
+											},
+											"schema_version": {
+												Type:     pluginsdk.TypeString,
+												Computed: true,
+											},
+										},
 									},
 								},
 							},
@@ -486,8 +496,8 @@ func (r AssetResource) Create() sdk.ResourceFunc {
 				},
 			}
 
-			if config.DefaultTopic.Path != "" {
-				param.Properties.DefaultTopic = toAzureTopic(config.DefaultTopic)
+			if len(config.DefaultTopic) != 0 && config.DefaultTopic[0].Path != "" {
+				param.Properties.DefaultTopic = toAzureTopic(config.DefaultTopic[0])
 			}
 
 			if len(config.Datasets) > 0 {
@@ -550,9 +560,11 @@ func (r AssetResource) Update() sdk.ResourceFunc {
 			}
 
 			if metadata.ResourceData.HasChange("default_topic") {
-				param.Properties.DefaultTopic = &assets.TopicUpdate{
-					Path:   pointer.To(config.DefaultTopic.Path),
-					Retain: pointer.To(assets.TopicRetainType(config.DefaultTopic.Retain)),
+				if len(config.DefaultTopic) != 0 {
+					param.Properties.DefaultTopic = &assets.TopicUpdate{
+						Path:   pointer.To(config.DefaultTopic[0].Path),
+						Retain: pointer.To(assets.TopicRetainType(config.DefaultTopic[0].Retain)),
+					}
 				}
 			}
 
@@ -672,10 +684,13 @@ func (AssetResource) Read() sdk.ResourceFunc {
 					}
 
 					if status := props.Status; status != nil {
-						state.Status.Version = pointer.From(status.Version)
-						state.Status.Errors = toTFAssetErrorStatuses(status.Errors)
-						state.Status.Datasets = toTFDatasetStatuses(status.Datasets)
-						state.Status.Events = toTFEventStatuses(status.Events)
+						status := AssetStatus{
+							Version:  pointer.From(status.Version),
+							Errors:   toTFAssetErrorStatuses(status.Errors),
+							Datasets: toTFDatasetStatuses(status.Datasets),
+							Events:   toTFEventStatuses(status.Events),
+						}
+						state.Status = []AssetStatus{status}
 					}
 				}
 			}
@@ -715,10 +730,15 @@ func toAzureDatasets(datasets []Dataset) *[]assets.Dataset {
 
 	azureDatasets := make([]assets.Dataset, len(datasets))
 	for i, dataset := range datasets {
+		var topic *assets.Topic
+		if len(dataset.Topic) != 0 && dataset.Topic[0].Path != "" {
+			topic = toAzureTopic(dataset.Topic[0])
+		}
+
 		azureDatasets[i] = assets.Dataset{
 			Name:                 dataset.Name,
 			DatasetConfiguration: pointer.To(dataset.DatasetConfiguration),
-			Topic:                toAzureTopic(dataset.Topic),
+			Topic:                topic,
 			DataPoints:           toAzureDataPoints(dataset.DataPoints),
 		}
 	}
@@ -751,12 +771,17 @@ func toAzureEvents(events []Event) *[]assets.Event {
 
 	azureEvents := make([]assets.Event, len(events))
 	for i, event := range events {
+		var topic *assets.Topic
+		if len(event.Topic) != 0 && event.Topic[0].Path != "" {
+			topic = toAzureTopic(event.Topic[0])
+		}
+
 		azureEvents[i] = assets.Event{
 			Name:               event.Name,
 			EventNotifier:      event.EventNotifier,
 			EventConfiguration: pointer.To(event.EventConfiguration),
 			ObservabilityMode:  pointer.To(assets.EventObservabilityMode(event.ObservabilityMode)),
-			Topic:              toAzureTopic(event.Topic),
+			Topic:              topic,
 		}
 	}
 
@@ -834,14 +859,16 @@ func toTFEvents(events *[]assets.Event) []Event {
 	return tfEvents
 }
 
-func toTFTopic(topic *assets.Topic) Topic {
+func toTFTopic(topic *assets.Topic) []Topic {
 	if topic == nil {
-		return Topic{}
+		return nil
 	}
 
-	return Topic{
-		Path:   topic.Path,
-		Retain: string(pointer.From(topic.Retain)),
+	return []Topic{
+		{
+			Path:   topic.Path,
+			Retain: string(pointer.From(topic.Retain)),
+		},
 	}
 }
 
@@ -893,14 +920,16 @@ func toTFEventStatuses(eventStatuses *[]assets.AssetStatusEvent) []EventStatus {
 	return tfEventStatuses
 }
 
-func toTFMessageSchemaReference(messageSchemaReference *assets.MessageSchemaReference) MessageSchemaReference {
+func toTFMessageSchemaReference(messageSchemaReference *assets.MessageSchemaReference) []MessageSchemaReference {
 	if messageSchemaReference == nil {
-		return MessageSchemaReference{}
+		return nil
 	}
 
-	return MessageSchemaReference{
-		SchemaRegistryNamespace: messageSchemaReference.SchemaRegistryNamespace,
-		SchemaName:              messageSchemaReference.SchemaName,
-		SchemaVersion:           messageSchemaReference.SchemaVersion,
+	return []MessageSchemaReference{
+		{
+			SchemaRegistryNamespace: messageSchemaReference.SchemaRegistryNamespace,
+			SchemaName:              messageSchemaReference.SchemaName,
+			SchemaVersion:           messageSchemaReference.SchemaVersion,
+		},
 	}
 }

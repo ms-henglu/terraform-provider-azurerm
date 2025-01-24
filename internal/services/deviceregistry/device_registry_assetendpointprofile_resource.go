@@ -20,24 +20,24 @@ var _ sdk.Resource = AssetEndpointProfileResource{}
 type AssetEndpointProfileResource struct{}
 
 type AssetEndpointProfileResourceModel struct {
-	Name                                          string                     `tfschema:"name"`
-	ResourceGroupName                             string                     `tfschema:"resource_group_name"`
-	Type                                          string                     `tfschema:"type"`
-	Location                                      string                     `tfschema:"location"`
-	Tags                                          map[string]string          `tfschema:"tags"`
-	ExtendedLocationName                          string                     `tfschema:"extended_location_name"`
-	ExtendedLocationType                          string                     `tfschema:"extended_location_type"`
-	ProvisioningState                             string                     `tfschema:"provisioning_state"`
-	Uuid                                          string                     `tfschema:"uuid"`
-	TargetAddress                                 string                     `tfschema:"target_address"`
-	EndpointProfileType                           string                     `tfschema:"endpoint_profile_type"`
-	DiscoveredAssetEndpointProfileRef             string                     `tfschema:"discovered_asset_endpoint_profile_ref"`
-	AdditionalConfiguration                       string                     `tfschema:"additional_configuration"`
-	AuthenticationMethod                          string                     `tfschema:"authentication_method"`
-	UsernamePasswordCredentialsUsernameSecretName string                     `tfschema:"username_password_credentials_username_secret_name"`
-	UsernamePasswordCredentialsPasswordSecretName string                     `tfschema:"username_password_credentials_password_secret_name"`
-	X509CredentialsCertificateSecretName          string                     `tfschema:"x509_credentials_certificate_secret_name"`
-	Status                                        AssetEndpointProfileStatus `tfschema:"status"`
+	Name                                          string                       `tfschema:"name"`
+	ResourceGroupName                             string                       `tfschema:"resource_group_name"`
+	Type                                          string                       `tfschema:"type"`
+	Location                                      string                       `tfschema:"location"`
+	Tags                                          map[string]string            `tfschema:"tags"`
+	ExtendedLocationName                          string                       `tfschema:"extended_location_name"`
+	ExtendedLocationType                          string                       `tfschema:"extended_location_type"`
+	ProvisioningState                             string                       `tfschema:"provisioning_state"`
+	Uuid                                          string                       `tfschema:"uuid"`
+	TargetAddress                                 string                       `tfschema:"target_address"`
+	EndpointProfileType                           string                       `tfschema:"endpoint_profile_type"`
+	DiscoveredAssetEndpointProfileRef             string                       `tfschema:"discovered_asset_endpoint_profile_ref"`
+	AdditionalConfiguration                       string                       `tfschema:"additional_configuration"`
+	AuthenticationMethod                          string                       `tfschema:"authentication_method"`
+	UsernamePasswordCredentialsUsernameSecretName string                       `tfschema:"username_password_credentials_username_secret_name"`
+	UsernamePasswordCredentialsPasswordSecretName string                       `tfschema:"username_password_credentials_password_secret_name"`
+	X509CredentialsCertificateSecretName          string                       `tfschema:"x509_credentials_certificate_secret_name"`
+	Status                                        []AssetEndpointProfileStatus `tfschema:"status"`
 }
 
 type AssetEndpointProfileStatus struct {
@@ -124,22 +124,23 @@ func (AssetEndpointProfileResource) Attributes() map[string]*pluginsdk.Schema {
 			Computed: true,
 		},
 		"status": {
-			Type:     pluginsdk.TypeMap,
+			Type:     pluginsdk.TypeList,
 			Computed: true,
-			Elem: map[string]*pluginsdk.Schema{
-				"errors": {
-					Type:     pluginsdk.TypeList,
-					Computed: true,
-					Elem: &pluginsdk.Schema{
-						Type: pluginsdk.TypeMap,
-						Elem: map[string]*pluginsdk.Schema{
-							"code": {
-								Type:     pluginsdk.TypeString,
-								Computed: true,
-							},
-							"message": {
-								Type:     pluginsdk.TypeString,
-								Computed: true,
+			Elem: &pluginsdk.Resource{
+				Schema: map[string]*pluginsdk.Schema{
+					"errors": {
+						Type:     pluginsdk.TypeList,
+						Computed: true,
+						Elem: &pluginsdk.Resource{
+							Schema: map[string]*pluginsdk.Schema{
+								"code": {
+									Type:     pluginsdk.TypeString,
+									Computed: true,
+								},
+								"message": {
+									Type:     pluginsdk.TypeString,
+									Computed: true,
+								},
 							},
 						},
 					},
@@ -335,8 +336,10 @@ func (AssetEndpointProfileResource) Read() sdk.ResourceFunc {
 						}
 					}
 					if status := props.Status; status != nil {
-						state.Status = AssetEndpointProfileStatus{
-							Errors: toTFAssetEndpointProfileErrorStatuses(status.Errors),
+						state.Status = []AssetEndpointProfileStatus{
+							{
+								Errors: toTFAssetEndpointProfileErrorStatuses(status.Errors),
+							},
 						}
 					}
 				}

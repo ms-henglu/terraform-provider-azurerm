@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/go-azure-sdk/sdk/internal/accept"
 	"github.com/hashicorp/go-azure-sdk/sdk/odata"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/Azure/go-autorest/autorest/azure"
 )
 
 // RetryOn404ConsistencyFailureFunc can be used to retry a request when a 404 response is received
@@ -419,6 +420,68 @@ func (c *Client) Execute(ctx context.Context, req *Request) (*Response, error) {
 	if req.Request == nil {
 		return nil, fmt.Errorf("req.Request was nil")
 	}
+
+	if req.Request.Method == "GET" || req.Request.Method == "HEAD"{
+		return &Response{
+			OData:    nil,
+			Response: &http.Response{
+				StatusCode: 404,
+				Header: map[string][]string{
+					"Content-Type": {"application/json"},
+				},
+				Body:	   io.NopCloser(strings.NewReader("")),
+			},
+		},fmt.Errorf("unexpected status 404 with response: %s", string("") )
+	}
+
+	if req.Request.Method == "PUT" || req.Request.Method == "PATCH" || req.Request.Method == "POST" && !strings.Contains(req.Request.URL.Path, "checkNameAvailability") {
+		model := azure.ServiceError{
+			Code:    "InterceptedError",
+			Message: "Intercepted error",
+			InnerError: map[string]interface{}{
+				"url":  req.Request.URL.String(),
+				"body": requestBodyString(req.Request),
+			},
+		}
+		data, _ := json.Marshal(model)
+
+		return &Response{
+			OData:    nil,
+			Response: &http.Response{
+				StatusCode: 400,
+				Header: map[string][]string{
+					"Content-Type": {"application/json"},
+				},
+				Body:	   io.NopCloser(bytes.NewReader(data)),
+			},
+		}, fmt.Errorf("unexpected status 400 with response: %s", string(data))
+	}
+
+	if req.Request.Method == "POST" {
+		if strings.Contains(req.Request.URL.Path, "checkNameAvailability") {
+			return &Response{
+				OData:    nil,
+				Response: &http.Response{
+					StatusCode: 200,
+					Header: map[string][]string{
+						"Content-Type": {"application/json"},
+					},
+					Body:	   io.NopCloser(strings.NewReader(`{"nameAvailable":true}`)),
+				},
+			}, nil
+		}
+	}
+
+	return &Response{
+		OData:    nil,
+		Response: &http.Response{
+			StatusCode: 400,
+			Header: map[string][]string{
+				"Content-Type": {"application/json"},
+			},
+			Body:	   io.NopCloser(strings.NewReader(``)),
+		},
+	}, nil
 
 	// Authorize the request
 	if c.AuthorizeRequest != nil {
@@ -864,4 +927,18 @@ func isResourceManagerHost(req *Request) bool {
 	}
 
 	return false
+}
+
+func requestBodyString(req *http.Request) string {
+	if req == nil || req.Body == nil {
+		return ""
+	}
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		log.Printf("[ERROR] Failed to read request body: %v", err)
+		body = []byte(err.Error())
+	} else {
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	}
+	return string(body)
 }

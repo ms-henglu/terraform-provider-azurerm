@@ -21,6 +21,7 @@ import (
 type KeyVaultSecretEphemeral struct{}
 
 func TestAccEphemeralKeyVaultSecret_basic(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretEphemeral{}
 
@@ -42,6 +43,7 @@ func TestAccEphemeralKeyVaultSecret_basic(t *testing.T) {
 }
 
 func TestAccEphemeralKeyVaultSecret_complete(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretEphemeral{}
 

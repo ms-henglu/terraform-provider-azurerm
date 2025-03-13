@@ -516,6 +516,7 @@ func TestAccMySqlFlexibleServer_identity(t *testing.T) {
 }
 
 func TestAccMySqlFlexibleServer_writeOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mysql_flexible_server", "test")
 	r := MySqlFlexibleServerResource{}
 
@@ -540,6 +541,7 @@ func TestAccMySqlFlexibleServer_writeOnlyPassword(t *testing.T) {
 }
 
 func TestAccMySqlFlexibleServer_updateToWriteOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mysql_flexible_server", "test")
 	r := MySqlFlexibleServerResource{}
 

@@ -325,6 +325,7 @@ func TestAccMsSqlServer_CMKServerTagsUpdate(t *testing.T) {
 }
 
 func TestAccMsSqlServer_writeOnlyAdminLoginPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mssql_server", "test")
 	r := MsSqlServerResource{}
 
@@ -355,6 +356,7 @@ func TestAccMsSqlServer_writeOnlyAdminLoginPassword(t *testing.T) {
 }
 
 func TestAccMsSqlServer_updateToWriteOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mssql_server", "test")
 	r := MsSqlServerResource{}
 

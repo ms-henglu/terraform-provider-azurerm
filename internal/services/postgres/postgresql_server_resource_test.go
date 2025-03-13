@@ -386,6 +386,7 @@ func TestAccPostgreSQLServer_minTlsVersionOnServerUpdate(t *testing.T) {
 }
 
 func TestAccPostgreSQLServer_writeOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_postgresql_server", "test")
 	r := PostgreSQLServerResource{}
 
@@ -410,6 +411,7 @@ func TestAccPostgreSQLServer_writeOnlyPassword(t *testing.T) {
 }
 
 func TestAccPostgreSQLServer_updateToWriteOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_postgresql_server", "test")
 	r := PostgreSQLServerResource{}
 

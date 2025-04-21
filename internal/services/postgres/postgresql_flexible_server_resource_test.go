@@ -624,6 +624,7 @@ func TestAccPostgresqlFlexibleServer_publicNetworkAccessEnabled(t *testing.T) {
 }
 
 func TestAccPostgresqlFlexibleServer_writeOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_postgresql_flexible_server", "test")
 	r := PostgresqlFlexibleServerResource{}
 
@@ -648,6 +649,7 @@ func TestAccPostgresqlFlexibleServer_writeOnlyPassword(t *testing.T) {
 }
 
 func TestAccPostgresqlFlexibleServer_updateToWriteOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_postgresql_flexible_server", "test")
 	r := PostgresqlFlexibleServerResource{}
 

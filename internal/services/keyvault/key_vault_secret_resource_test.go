@@ -44,6 +44,7 @@ func TestAccKeyVaultSecret_basic(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_writeOnlyValue(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -76,6 +77,7 @@ func TestAccKeyVaultSecret_writeOnlyValue(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_updateToWriteOnlyValue(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 

@@ -5,6 +5,7 @@ package common
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/go-azure-sdk/sdk/environments"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/features"
 	"github.com/hashicorp/terraform-provider-azurerm/version"
+	"github.com/ms-henglu/azurerm-interceptor/interceptor"
 )
 
 type Authorizers struct {
@@ -63,7 +65,7 @@ type ClientOptions struct {
 
 // Configure set up a resourcemanager.Client using an auth.Authorizer from hashicorp/go-azure-sdk
 func (o ClientOptions) Configure(c client.BaseClient, authorizer auth.Authorizer) {
-	c.SetAuthorizer(authorizer)
+	//c.SetAuthorizer(authorizer)
 	c.SetUserAgent(userAgent(c.GetUserAgent(), o.TerraformVersion, o.PartnerId, o.DisableTerraformPartnerID))
 
 	if !o.DisableCorrelationRequestID {
@@ -82,7 +84,7 @@ func (o ClientOptions) Configure(c client.BaseClient, authorizer auth.Authorizer
 func (o ClientOptions) ConfigureClient(c *autorest.Client, authorizer autorest.Authorizer) {
 	c.UserAgent = userAgent(c.UserAgent, o.TerraformVersion, o.PartnerId, o.DisableTerraformPartnerID)
 
-	c.Authorizer = authorizer
+	//c.Authorizer = authorizer
 	c.Sender = sender.BuildSender("AzureRM")
 	c.SkipResourceProviderRegistration = o.SkipProviderReg
 	if !o.DisableCorrelationRequestID {
@@ -92,6 +94,14 @@ func (o ClientOptions) ConfigureClient(c *autorest.Client, authorizer autorest.A
 		}
 		c.RequestInspector = withCorrelationRequestID(id)
 	}
+	c.Sender = MockSender{}
+}
+
+type MockSender struct {
+}
+
+func (receiver MockSender) Do(request *http.Request) (*http.Response, error) {
+	return interceptor.HandleRequest(request)
 }
 
 func userAgent(userAgent, tfVersion, partnerID string, disableTerraformPartnerID bool) string {

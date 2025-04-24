@@ -1488,6 +1488,9 @@ github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v1.0.2
 ## explicit
 github.com/mitchellh/reflectwalk
+# github.com/ms-henglu/azurerm-interceptor v0.0.0-20250424065430-32d17ffe88f1
+## explicit; go 1.24.1
+github.com/ms-henglu/azurerm-interceptor/interceptor
 # github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e
 ## explicit; go 1.12
 # github.com/oklog/run v1.1.0

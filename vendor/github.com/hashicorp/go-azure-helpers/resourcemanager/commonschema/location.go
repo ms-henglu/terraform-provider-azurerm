@@ -36,6 +36,18 @@ func LocationComputed() *schema.Schema {
 	}
 }
 
+func LocationComputedOptional() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
+		ForceNew: true,
+		ValidateFunc:     location.EnhancedValidate,
+		StateFunc:        location.StateFunc,
+		DiffSuppressFunc: location.DiffSuppressFunc,
+	}
+}
+
 func LocationWithoutForceNew() *schema.Schema {
 	return &schema.Schema{
 		Type:             schema.TypeString,

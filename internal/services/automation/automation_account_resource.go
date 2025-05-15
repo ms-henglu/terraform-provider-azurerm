@@ -57,7 +57,7 @@ func resourceAutomationAccount() *pluginsdk.Resource {
 
 			"location": commonschema.Location(),
 
-			"resource_group_name": commonschema.ResourceGroupName(),
+			"resource_group_name": commonschema.ResourceGroupNameOptionalComputed(),
 
 			"sku_name": {
 				Type:         pluginsdk.TypeString,

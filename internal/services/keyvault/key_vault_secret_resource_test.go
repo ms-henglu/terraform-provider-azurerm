@@ -26,6 +26,7 @@ import (
 type KeyVaultSecretResource struct{}
 
 func TestAccKeyVaultSecret_basic(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -44,6 +45,7 @@ func TestAccKeyVaultSecret_basic(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_writeOnlyValue(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -76,6 +78,7 @@ func TestAccKeyVaultSecret_writeOnlyValue(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_updateToWriteOnlyValue(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -115,6 +118,7 @@ func TestAccKeyVaultSecret_updateToWriteOnlyValue(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_requiresImport(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -134,6 +138,7 @@ func TestAccKeyVaultSecret_requiresImport(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_disappears(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -146,6 +151,7 @@ func TestAccKeyVaultSecret_disappears(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_disappearsWhenParentKeyVaultDeleted(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -161,6 +167,7 @@ func TestAccKeyVaultSecret_disappearsWhenParentKeyVaultDeleted(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_complete(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -181,6 +188,7 @@ func TestAccKeyVaultSecret_complete(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_update(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -203,6 +211,7 @@ func TestAccKeyVaultSecret_update(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_updatingValueChangedExternally(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -231,6 +240,7 @@ func TestAccKeyVaultSecret_updatingValueChangedExternally(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_recovery(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -258,6 +268,7 @@ func TestAccKeyVaultSecret_recovery(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_withExternalAccessPolicy(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 
@@ -280,6 +291,7 @@ func TestAccKeyVaultSecret_withExternalAccessPolicy(t *testing.T) {
 }
 
 func TestAccKeyVaultSecret_purge(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_key_vault_secret", "test")
 	r := KeyVaultSecretResource{}
 

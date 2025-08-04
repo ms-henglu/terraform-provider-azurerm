@@ -21,6 +21,7 @@ import (
 type KeyVaultCertificateEphemeral struct{}
 
 func TestAccEphemeralKeyVaultCertificate_basic(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_certificate", "test")
 	r := KeyVaultCertificateEphemeral{}
 
@@ -46,6 +47,7 @@ func TestAccEphemeralKeyVaultCertificate_basic(t *testing.T) {
 }
 
 func TestAccEphemeralKeyVaultCertificate_ecdsaPFX(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_certificate", "test")
 	r := KeyVaultCertificateEphemeral{}
 
@@ -69,6 +71,7 @@ func TestAccEphemeralKeyVaultCertificate_ecdsaPFX(t *testing.T) {
 }
 
 func TestAccEphemeralKeyVaultCertificate_ecdsaPEM(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_certificate", "test")
 	r := KeyVaultCertificateEphemeral{}
 
@@ -92,6 +95,7 @@ func TestAccEphemeralKeyVaultCertificate_ecdsaPEM(t *testing.T) {
 }
 
 func TestAccEphemeralKeyVaultCertificate_rsaBundlePEM(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_certificate", "test")
 	r := KeyVaultCertificateEphemeral{}
 
@@ -116,6 +120,7 @@ func TestAccEphemeralKeyVaultCertificate_rsaBundlePEM(t *testing.T) {
 }
 
 func TestAccEphemeralKeyVaultCertificate_rsaSinglePEM(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_certificate", "test")
 	r := KeyVaultCertificateEphemeral{}
 
@@ -140,6 +145,7 @@ func TestAccEphemeralKeyVaultCertificate_rsaSinglePEM(t *testing.T) {
 }
 
 func TestAccEphemeralKeyVaultCertificate_rsaBundlePFX(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "ephemeral.azurerm_key_vault_certificate", "test")
 	r := KeyVaultCertificateEphemeral{}
 

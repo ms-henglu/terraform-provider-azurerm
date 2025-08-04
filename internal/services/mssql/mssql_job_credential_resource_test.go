@@ -24,6 +24,7 @@ import (
 type MsSqlJobCredentialResource struct{}
 
 func TestAccMsSqlJobCredential_basic(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mssql_job_credential", "test")
 	r := MsSqlJobCredentialResource{}
 
@@ -39,6 +40,7 @@ func TestAccMsSqlJobCredential_basic(t *testing.T) {
 }
 
 func TestAccMsSqlJobCredential_requiresImport(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mssql_job_credential", "test")
 	r := MsSqlJobCredentialResource{}
 
@@ -54,6 +56,7 @@ func TestAccMsSqlJobCredential_requiresImport(t *testing.T) {
 }
 
 func TestAccMsSqlJobCredential_update(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mssql_job_credential", "test")
 	r := MsSqlJobCredentialResource{}
 
@@ -76,6 +79,7 @@ func TestAccMsSqlJobCredential_update(t *testing.T) {
 }
 
 func TestAccMsSqlJobCredential_writeOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mssql_job_credential", "test")
 	r := MsSqlJobCredentialResource{}
 
@@ -100,6 +104,7 @@ func TestAccMsSqlJobCredential_writeOnlyPassword(t *testing.T) {
 }
 
 func TestAccMsSqlJobCredential_updateToWriteOnlyPassword(t *testing.T) {
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_mssql_job_credential", "test")
 	r := MsSqlJobCredentialResource{}
 

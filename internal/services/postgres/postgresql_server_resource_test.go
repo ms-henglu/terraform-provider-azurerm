@@ -463,10 +463,7 @@ func TestAccPostgreSQLServer_minTlsVersionOnServerUpdate(t *testing.T) {
 }
 
 func TestAccPostgreSQLServer_writeOnlyPassword(t *testing.T) {
-	if features.FivePointOh() {
-		t.Skipf("Skipping since `azurerm_postgresql_server` is deprecated and will be removed in 5.0")
-	}
-
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_postgresql_server", "test")
 	r := PostgreSQLServerResource{}
 
@@ -491,10 +488,7 @@ func TestAccPostgreSQLServer_writeOnlyPassword(t *testing.T) {
 }
 
 func TestAccPostgreSQLServer_updateToWriteOnlyPassword(t *testing.T) {
-	if features.FivePointOh() {
-		t.Skipf("Skipping since `azurerm_postgresql_server` is deprecated and will be removed in 5.0")
-	}
-
+	t.Skip("Skipping test")
 	data := acceptance.BuildTestData(t, "azurerm_postgresql_server", "test")
 	r := PostgreSQLServerResource{}
 

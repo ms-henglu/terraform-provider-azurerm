@@ -31,6 +31,10 @@ type ResourceManagerAccount struct {
 }
 
 func NewResourceManagerAccount(ctx context.Context, config auth.Credentials, subscriptionId string, registeredResourceProviders resourceproviders.ResourceProviders) (*ResourceManagerAccount, error) {
+	return &ResourceManagerAccount{
+		SubscriptionId: subscriptionId,
+		Environment:    config.Environment,
+	}, nil
 	authorizer, err := auth.NewAuthorizerFromCredentials(ctx, config, config.Environment.MicrosoftGraph)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build authorizer for Microsoft Graph API: %+v", err)
